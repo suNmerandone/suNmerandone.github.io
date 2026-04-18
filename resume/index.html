@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kenneth Chen (Kun-Yu Chen) · 履歷</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-neutral-50:  #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-800: #27272A;
+      --color-neutral-900: #18181B;
+      --color-accent-500: #FB7185;
+      --color-accent-600: #E11D48;
+      --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      color: var(--color-neutral-900);
+      background: var(--color-neutral-50);
+      -webkit-font-smoothing: antialiased;
+    }
+    .page {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 3.2rem 3rem;
+      background: white;
+    }
+
+    /* ============ Layer 1: Hero ============ */
+    .hero {
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--color-neutral-200);
+      margin-bottom: 2rem;
+    }
+    .hero-name {
+      font-size: 2.8rem;
+      font-weight: 700;
+      margin: 0 0 0.3rem 0;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+    .hero-altname {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      color: var(--color-neutral-500);
+      margin: 0 0 0.4rem 0;
+      letter-spacing: 0.02em;
+    }
+    .hero-role {
+      font-size: 1.05rem;
+      color: var(--color-neutral-700);
+      font-weight: 500;
+      margin: 0 0 1.3rem 0;
+    }
+    .hero-tagline {
+      font-size: 1rem;
+      color: var(--color-neutral-800);
+      line-height: 1.65;
+      max-width: 700px;
+      margin: 0 0 1.8rem 0;
+    }
+    .hero-tagline strong {
+      color: var(--color-neutral-900);
+      font-weight: 600;
+    }
+
+    .hero-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 1.8rem;
+      padding: 1rem 0;
+      border-top: 1px dashed var(--color-neutral-200);
+      border-bottom: 1px dashed var(--color-neutral-200);
+    }
+    .hero-kpi .kpi-num {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--color-neutral-900);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    .hero-kpi .kpi-num .unit {
+      font-size: 0.72em;
+      color: var(--color-accent-600);
+      margin-left: 0.1em;
+      font-family: var(--font-mono);
+    }
+    .hero-kpi .kpi-lab {
+      font-size: 0.76rem;
+      color: var(--color-neutral-500);
+      margin-top: 0.25rem;
+      line-height: 1.45;
+    }
+
+    .hero-contact {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1.4rem;
+      font-size: 0.85rem;
+      font-family: var(--font-mono);
+      color: var(--color-neutral-700);
+    }
+    .hero-contact a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px dashed var(--color-neutral-400);
+    }
+    .hero-contact a:hover { color: var(--color-accent-600); border-bottom-color: currentColor; }
+
+    /* ============ Layer 2: Sections ============ */
+    .section { margin-bottom: 1.8rem; }
+    .section-title {
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-accent-600);
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--color-neutral-200);
+    }
+
+    .job {
+      margin-bottom: 1.3rem;
+    }
+    .job:last-child { margin-bottom: 0; }
+    .job-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 0.3rem;
+      flex-wrap: wrap;
+    }
+    .job-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      margin: 0;
+    }
+    .job-title .company { color: var(--color-neutral-900); }
+    .job-title .role    { color: var(--color-neutral-600); font-weight: 500; }
+    .job-title .tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--color-accent-600);
+      margin-left: 0.6rem;
+      padding: 0.1em 0.5em;
+      border: 1px solid var(--color-accent-500);
+      border-radius: 999px;
+      vertical-align: middle;
+    }
+    .job-meta {
+      font-size: 0.8rem;
+      color: var(--color-neutral-500);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+    .job-lead {
+      font-size: 0.9rem;
+      color: var(--color-neutral-600);
+      margin: 0 0 0.3rem 0;
+      font-style: italic;
+    }
+    .job ul {
+      list-style: none;
+      padding: 0;
+      margin: 0.3rem 0 0 0;
+    }
+    .job li {
+      position: relative;
+      padding-left: 1.1em;
+      margin: 0.35rem 0;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: var(--color-neutral-700);
+    }
+    .job li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--color-accent-500);
+      font-weight: 700;
+    }
+    .job li strong { color: var(--color-neutral-900); font-weight: 600; }
+    .job li a {
+      color: var(--color-accent-600);
+      text-decoration: none;
+      border-bottom: 1px dashed currentColor;
+    }
+    .job li a:hover { color: var(--color-accent-700); }
+
+    .skills-grid {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 0.5rem 1.3rem;
+      font-size: 0.9rem;
+    }
+    .skills-grid dt {
+      color: var(--color-neutral-500);
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding-top: 0.15rem;
+    }
+    .skills-grid dd {
+      margin: 0;
+      color: var(--color-neutral-800);
+      line-height: 1.55;
+    }
+
+    .line-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.9rem;
+      margin: 0.35rem 0;
+      flex-wrap: wrap;
+    }
+    .line-item .main { color: var(--color-neutral-800); }
+    .line-item .main strong { color: var(--color-neutral-900); }
+    .line-item .date {
+      color: var(--color-neutral-500);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    .pub-list { font-size: 0.85rem; color: var(--color-neutral-700); line-height: 1.55; padding-left: 1.1em; list-style: none; margin: 0.3rem 0 0 0; }
+    .pub-list li { position: relative; padding-left: 0; margin: 0.3rem 0; }
+    .pub-list li::before { content: "·"; position: absolute; left: -0.8em; color: var(--color-accent-500); }
+    .pub-list em { color: var(--color-neutral-900); font-style: italic; }
+
+    @media print {
+      body { background: white; }
+      .page { margin: 0; padding: 1.6cm 1.5cm; max-width: none; box-shadow: none; }
+      .section, .job { page-break-inside: avoid; }
+      a { color: inherit; text-decoration: none; border: none; }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<article class="page">
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <h1 class="hero-name">Kenneth Chen</h1>
+    <p class="hero-altname">Kun-Yu Chen</p>
+    <p class="hero-role">Senior Software Engineer II · ViewSonic</p>
+
+    <p class="hero-tagline">
+      <strong>AI 工具鏈 Tool Builder</strong>，十年 Windows 桌面軟體深度開發底蘊，
+      跨 B2B 三產業（半導體、工業自動化、教育科技）的系統軟體經驗。
+      以個人開源作品驗證能從「AI 使用者」升級為「AI 工具 builder」。
+    </p>
+
+    <div class="hero-kpis">
+      <div class="hero-kpi">
+        <div class="kpi-num">2<span class="unit">works</span></div>
+        <div class="kpi-lab">個人開源 · Claude Code plugin + meta-system</div>
+      </div>
+      <div class="hero-kpi">
+        <div class="kpi-num">10<span class="unit">+ yrs</span></div>
+        <div class="kpi-lab">.NET / WPF / UWP / WinUI3 跨技術代際</div>
+      </div>
+      <div class="hero-kpi">
+        <div class="kpi-num">3<span class="unit">industries</span></div>
+        <div class="kpi-lab">半導體 · 工業自動化 · 教育科技（B2B）</div>
+      </div>
+    </div>
+
+    <div class="hero-contact">
+      <a href="https://sunmerandone.github.io/">Portfolio</a>
+      <a href="https://github.com/suNmerandone">GitHub</a>
+      <a href="https://www.linkedin.com/in/kun-yu-chen-314844152/">LinkedIn</a>
+      <span>桃園市, 台灣</span>
+    </div>
+  </header>
+
+  <!-- ============ SELECTED PROJECTS ============ -->
+  <section class="section">
+    <h2 class="section-title">Selected Projects · 個人作品</h2>
+
+    <div class="job">
+      <div class="job-head">
+        <p class="job-title">
+          <span class="company">claude-devkit</span>
+          ·
+          <span class="role">Author · MIT · v0.4.2</span>
+          <a href="https://sunmerandone.github.io/claude-devkit-guide/" class="tag">guide ↗</a>
+        </p>
+        <span class="job-meta">2025 – Present</span>
+      </div>
+      <p class="job-lead">Claude Code 跨專案開發 plugin，PR 評分 + 規劃文件合成工具鏈。</p>
+      <ul>
+        <li><strong>設計</strong> Progressive Disclosure 架構，SKILL.md 主 prompt 控制在 500 行、reference 按需讀取，避免 token 消耗稀釋主要指令</li>
+        <li><strong>建構</strong> <code>--ensemble</code> 模式：3 個 subagent 獨立評估取眾數，以統計投票解決 LLM 單次評估的隨機性（將集成學習概念應用於工程工具）</li>
+        <li><strong>發佈</strong> 5 組可切換評分 profile（default / brownfield / safety-critical / fast-iteration / test-driven）、7 維度 rubric、3 種規劃樣板，並提供中英雙語技術文件</li>
+      </ul>
+    </div>
+
+    <div class="job">
+      <div class="job-head">
+        <p class="job-title">
+          <span class="company">claude-present</span>
+          ·
+          <span class="role">Author · Personal AI Content System</span>
+          <a href="https://sunmerandone.github.io/claude-present-showcase/" class="tag">showcase ↗</a>
+        </p>
+        <span class="job-meta">2025 – Present</span>
+      </div>
+      <p class="job-lead">個人 AI 內容生成系統，以結構性限制讓 AI 產出穩定、可累積。</p>
+      <ul>
+        <li><strong>建立</strong> design system 作為視覺風格的單一真實來源（tokens + patterns + components），所有 skill 共用視覺語言，修一處則全 repo 同步</li>
+        <li><strong>強制</strong>「skill 必讀 gold standard、禁止空白紙生成」機制，搭配 anti-patterns 回饋迴路，讓每次產出同時微調正負樣本</li>
+        <li><strong>設計</strong> 三件組產出（主產物 + source-notes + generation-log）作為系統自我對齊的訊號，將 AI 內容生成從單次產出升級為可迭代工程資產</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ EXPERIENCE ============ -->
+  <section class="section">
+    <h2 class="section-title">Professional Experience · 工作經歷</h2>
+
+    <div class="job">
+      <div class="job-head">
+        <p class="job-title">
+          <span class="company">ViewSonic</span>
+          ·
+          <span class="role">Senior Software Engineer II</span>
+        </p>
+        <span class="job-meta">2022-03 – Present</span>
+      </div>
+      <p class="job-lead">myViewBoard for Windows — 全球教育科技旗艦互動白板軟體。</p>
+      <ul>
+        <li><strong>主導</strong> myViewBoard v2 → v3 平台架構遷移中互動核心層（AdornerService）的重建，在 UWP 平台重新設計 Adorner 抽象系統，支撐選取、縮放、對齊等白板核心互動</li>
+        <li><strong>負責</strong> TextEditService、AutoAlignmentService、AutoFontReplaceService 等白板關鍵服務的設計與實作，完整負責從需求定義到上線的生命週期</li>
+        <li><strong>建立</strong> myViewBoard 與 ClassSwift 之間的身份認證與 API 整合層，支撐跨產品線的帳號共用與資料互通</li>
+        <li><strong>撰寫</strong> 團隊級 CLAUDE.md 協作規範（Brownfield 保護、Subagent 治理、時間估算統一基準），並 mentor 2 位組員，將 PR 審查週期從 3 天縮短至 1.5 天</li>
+      </ul>
+    </div>
+
+    <div class="job">
+      <div class="job-head">
+        <p class="job-title">
+          <span class="company">Delta Electronics · 台達電子</span>
+          ·
+          <span class="role">Senior Software Engineer</span>
+        </p>
+        <span class="job-meta">2018-01 – 2022-02</span>
+      </div>
+      <p class="job-lead">DIADesigner 工業整合工程軟體，IABG One Software 團隊。</p>
+      <ul>
+        <li><strong>提出</strong> 並實作參數設定優化功能，將工程師手動設定時間縮短 70%，提升日常使用效率</li>
+        <li><strong>重新設計</strong> FieldBus 搜尋 UI 流程，將工程師查找時間縮短 80%，優化工業自動化網路配置體驗</li>
+        <li><strong>帶領</strong> 小組進行任務規劃、跨團隊溝通與協作，協調工程與產品團隊的交付節奏</li>
+        <li><strong>發起</strong> 團隊知識分享機制，建立並維護內部 wiki 的技術文件庫，降低新進工程師上手成本</li>
+      </ul>
+    </div>
+
+    <div class="job">
+      <div class="job-head">
+        <p class="job-title">
+          <span class="company">Micron Technology · 美光科技</span>
+          ·
+          <span class="role">Software Engineer</span>
+        </p>
+        <span class="job-meta">2014-11 – 2017-07</span>
+      </div>
+      <p class="job-lead">半導體製程 MES 自動化系統，EURASIA 跨國軟體開發團隊。</p>
+      <ul>
+        <li><strong>建構</strong> 半導體製程用的腳本生成功能，每月節省約 NT$800,000 營運成本</li>
+        <li><strong>主導</strong> server load balancing 改善方案，將半導體製程環境的作業效率提升 50%</li>
+        <li><strong>參與</strong> 跨國 EURASIA 開發團隊，與美國、義大利、新加坡、印度、台灣成員協作 MES 系統開發與維運</li>
+        <li><strong>獲選</strong> 為 seed trainer 赴美國 Boise 總部受訓，返台後執行內部知識轉移</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ SKILLS ============ -->
+  <section class="section">
+    <h2 class="section-title">Skills · 技能</h2>
+    <dl class="skills-grid">
+      <dt>Core</dt>
+      <dd>C# / .NET Framework / .NET Core · WPF / UWP / WinUI3 · MVVM · Dependency Injection · Service-layer Design</dd>
+
+      <dt>AI Tooling</dt>
+      <dd>Claude Code Plugin / Skill Design · Progressive Disclosure Architecture · Ensemble Mode · Design Tokens / Pattern Systems · SemVer Governance · Bilingual Technical Documentation</dd>
+
+      <dt>AI Tools</dt>
+      <dd>Claude · GitHub Copilot · ChatGPT · Gemini</dd>
+
+      <dt>Tools</dt>
+      <dd>Git · GitHub · Jira · Confluence · Azure DevOps</dd>
+
+      <dt>Previously Used</dt>
+      <dd>Java · Python / Perl · C++ WinForm · IBM Rational Team Concert · TFS</dd>
+
+      <dt>Languages</dt>
+      <dd>Chinese (Native) · English (Professional — TOEIC 835)</dd>
+    </dl>
+  </section>
+
+  <!-- ============ EDUCATION ============ -->
+  <section class="section">
+    <h2 class="section-title">Education · 學歷</h2>
+    <div class="line-item">
+      <div class="main"><strong>Yuan-Ze University · 元智大學</strong> · 資訊工程碩士（M.S.）</div>
+      <span class="date">2012 – 2014</span>
+    </div>
+    <div class="line-item">
+      <div class="main"><strong>Ming Chuan University · 銘傳大學</strong> · 電腦與通訊工程學士（B.S.）</div>
+      <span class="date">2008 – 2012</span>
+    </div>
+  </section>
+
+  <!-- ============ PUBLICATIONS ============ -->
+  <section class="section">
+    <h2 class="section-title">Selected Publications · 論文發表</h2>
+    <ul class="pub-list">
+      <li><em>Bug Severity Assessment based on Weighted Multi-Facet Features with Particle Swarm Optimization</em> — Journal of Information Science and Engineering, 2020</li>
+      <li><em>Improving Severity Prediction on Software Bug Reports Using Quality Indicators</em> — IEEE ICSESS, 2014</li>
+      <li><em>Design of a Positioning System Module for Omni-direction Soccer Robot</em> — Journal of Computer Science and Educational Technology, 2012</li>
+    </ul>
+  </section>
+
+  <!-- ============ CERTIFICATIONS ============ -->
+  <section class="section">
+    <h2 class="section-title">Certifications · 證照</h2>
+    <div class="line-item">
+      <div class="main">Developing Solutions for Microsoft Azure</div>
+      <span class="date">Microsoft</span>
+    </div>
+  </section>
+
+</article>
+
+</body>
+</html>
