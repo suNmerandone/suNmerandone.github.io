@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>claude-devkit · 使用深度指南</title>
+  <meta name="description" content="Claude Code 跨專案開發輔助 plugin，PR 評分與規劃文件合成工具的完整使用指南。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-neutral-50:  #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-300: #D4D4D8;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-800: #27272A;
+      --color-neutral-900: #18181B;
+      --color-neutral-950: #0A0A0A;
+      --color-accent-50:  #FFF1F2;
+      --color-accent-100: #FFE4E6;
+      --color-accent-300: #FDA4AF;
+      --color-accent-500: #FB7185;
+      --color-accent-600: #E11D48;
+      --color-accent-700: #BE123C;
+
+      --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", monospace;
+      --text-xs:   0.64rem;
+      --text-sm:   0.8rem;
+      --text-base: 1rem;
+      --text-md:   1.25rem;
+      --text-lg:   1.5625rem;
+      --text-xl:   1.953rem;
+      --text-2xl:  2.441rem;
+      --text-3xl:  3.052rem;
+      --text-4xl:  3.815rem;
+      --lh-tight:   1.15;
+      --lh-normal:  1.45;
+      --lh-relaxed: 1.65;
+
+      --space-1:  0.25rem;
+      --space-2:  0.5rem;
+      --space-3:  0.75rem;
+      --space-4:  1rem;
+      --space-6:  1.5rem;
+      --space-8:  2rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-24: 6rem;
+
+      --radius-sm:  0.25rem;
+      --radius-md:  0.5rem;
+      --radius-lg:  0.75rem;
+
+      --shadow-sm:  0 1px 2px 0 rgba(24,24,27,0.04);
+      --shadow-md:  0 4px 8px -2px rgba(24,24,27,0.06), 0 2px 4px -2px rgba(24,24,27,0.04);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: var(--text-base);
+      line-height: var(--lh-relaxed);
+      color: var(--color-neutral-900);
+      background: var(--color-neutral-50);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============ Navigation ============ */
+    .topnav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-3) var(--space-8);
+      background: rgba(250, 250, 250, 0.92);
+      backdrop-filter: saturate(150%) blur(8px);
+      -webkit-backdrop-filter: saturate(150%) blur(8px);
+      border-bottom: 1px solid var(--color-neutral-200);
+    }
+    .topnav-brand {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      text-decoration: none;
+    }
+    .topnav-list {
+      display: flex;
+      gap: var(--space-6);
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .topnav-list a {
+      font-size: var(--text-sm);
+      color: var(--color-neutral-600);
+      text-decoration: none;
+      transition: color 120ms ease;
+    }
+    .topnav-list a:hover { color: var(--color-accent-600); }
+    @media (max-width: 640px) {
+      .topnav-list { gap: var(--space-3); }
+      .topnav { padding: var(--space-2) var(--space-4); }
+      .topnav-list a { font-size: var(--text-xs); }
+    }
+
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: var(--space-8);
+    }
+
+    /* ============ Hero ============ */
+    .hero {
+      padding: var(--space-16) 0 var(--space-12) 0;
+    }
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      color: var(--color-accent-600);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-4);
+    }
+    .hero-title {
+      font-size: var(--text-4xl);
+      font-weight: 700;
+      line-height: var(--lh-tight);
+      letter-spacing: -0.03em;
+      margin: 0 0 var(--space-4) 0;
+      color: var(--color-neutral-900);
+      font-family: var(--font-mono);
+    }
+    .hero-lede {
+      font-size: var(--text-md);
+      line-height: var(--lh-relaxed);
+      color: var(--color-neutral-600);
+      max-width: 680px;
+      margin: 0 0 var(--space-12) 0;
+    }
+    .hero-kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--space-6);
+      border-top: 1px solid var(--color-neutral-200);
+      padding-top: var(--space-8);
+    }
+    .kpi-value {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      color: var(--color-neutral-900);
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .kpi-unit {
+      font-size: var(--text-md);
+      color: var(--color-accent-500);
+      margin-left: 0.1em;
+      font-family: var(--font-mono);
+    }
+    .kpi-label {
+      font-size: var(--text-sm);
+      color: var(--color-neutral-500);
+      margin-top: var(--space-1);
+    }
+
+    /* ============ Sections ============ */
+    section.content {
+      margin-top: var(--space-16);
+      scroll-margin-top: 64px;
+    }
+    h2 {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      line-height: var(--lh-tight);
+      letter-spacing: -0.02em;
+      margin: 0 0 var(--space-6) 0;
+      padding-bottom: var(--space-3);
+      border-bottom: 2px solid var(--color-accent-500);
+      display: inline-block;
+    }
+    h3 {
+      font-size: var(--text-md);
+      font-weight: 600;
+      margin: var(--space-8) 0 var(--space-3) 0;
+      color: var(--color-neutral-900);
+    }
+    p {
+      color: var(--color-neutral-700);
+      margin: var(--space-3) 0;
+    }
+    ul, ol {
+      color: var(--color-neutral-700);
+      padding-left: 1.3em;
+    }
+    li { margin: var(--space-1) 0; }
+    strong { color: var(--color-neutral-900); font-weight: 600; }
+
+    /* ============ Code & Terminal ============ */
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background: var(--color-neutral-100);
+      padding: 0.12em 0.4em;
+      border-radius: var(--radius-sm);
+      color: var(--color-neutral-800);
+    }
+    pre {
+      background: var(--color-neutral-900);
+      color: var(--color-neutral-100);
+      padding: var(--space-4) var(--space-6);
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      line-height: var(--lh-normal);
+      margin: var(--space-4) 0;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+      font-size: inherit;
+    }
+    pre.ascii-tree {
+      background: var(--color-neutral-100);
+      color: var(--color-neutral-800);
+      font-size: var(--text-sm);
+    }
+
+    /* ============ Tables ============ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: var(--space-4) 0;
+      font-size: var(--text-sm);
+    }
+    th {
+      text-align: left;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-neutral-300);
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      background: var(--color-neutral-100);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    td {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-neutral-200);
+      color: var(--color-neutral-700);
+      vertical-align: top;
+    }
+    td code { font-size: 0.85em; }
+    td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* ============ Comparison Table ============ */
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+      margin: var(--space-6) 0;
+    }
+    .comparison-col {
+      padding: var(--space-6);
+      border: 1px solid var(--color-neutral-200);
+      border-radius: var(--radius-md);
+      background: var(--color-neutral-50);
+    }
+    .comparison-col--accent {
+      border-color: var(--color-accent-500);
+      background: var(--color-accent-50);
+    }
+    .comparison-head {
+      margin-bottom: var(--space-3);
+      padding-bottom: var(--space-3);
+      border-bottom: 1px solid var(--color-neutral-200);
+    }
+    .comparison-tag {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-neutral-600);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    .comparison-col--accent .comparison-tag { color: var(--color-accent-600); }
+    .comparison-note {
+      font-size: var(--text-xs);
+      color: var(--color-neutral-500);
+      margin-top: var(--space-1);
+    }
+    .comparison-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: var(--text-sm);
+    }
+    .comparison-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--space-2) 0;
+      border-bottom: 1px dashed var(--color-neutral-200);
+    }
+    .comparison-list li:last-child { border-bottom: none; }
+    .comparison-list .dim { color: var(--color-neutral-700); }
+    .comparison-list .weight { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-neutral-900); font-weight: 600; }
+    .comparison-col--accent .comparison-list .weight.up { color: var(--color-accent-600); }
+    @media (max-width: 640px) {
+      .comparison { grid-template-columns: 1fr; }
+    }
+
+    /* ============ Callout ============ */
+    aside.callout {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-6);
+      margin: var(--space-6) 0;
+      background: var(--color-neutral-100);
+      border-left: 4px solid var(--color-neutral-400);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    }
+    aside.callout--accent {
+      border-left-color: var(--color-accent-500);
+      background: var(--color-accent-50);
+    }
+    .callout-label {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-neutral-500);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding-top: 0.15em;
+      white-space: nowrap;
+    }
+    aside.callout--accent .callout-label { color: var(--color-accent-600); }
+    .callout-body { margin: 0; color: var(--color-neutral-800); }
+    .callout-body p:first-child { margin-top: 0; }
+    .callout-body p:last-child { margin-bottom: 0; }
+
+    /* ============ Footer ============ */
+    footer {
+      margin-top: var(--space-24);
+      padding: var(--space-8) 0 var(--space-16) 0;
+      border-top: 1px solid var(--color-neutral-200);
+      font-size: var(--text-sm);
+      color: var(--color-neutral-500);
+    }
+    footer .footer-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+    footer a {
+      color: var(--color-neutral-700);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--color-neutral-400);
+    }
+    footer a:hover { color: var(--color-accent-600); border-bottom-color: currentColor; }
+    @media (max-width: 640px) {
+      footer .footer-meta { flex-direction: column; gap: var(--space-2); }
+    }
+
+    /* Links in body */
+    main a {
+      color: var(--color-accent-600);
+      text-decoration: none;
+      border-bottom: 1px dashed currentColor;
+    }
+    main a:hover { color: var(--color-accent-700); }
+  </style>
+</head>
+<body>
+
+<nav class="topnav" aria-label="主要章節">
+  <a href="#top" class="topnav-brand">claude-devkit · guide</a>
+  <ul class="topnav-list">
+    <li><a href="#install">安裝</a></li>
+    <li><a href="#score-pr">score-pr</a></li>
+    <li><a href="#plan-writer">plan-writer</a></li>
+    <li><a href="#principles">設計原則</a></li>
+    <li><a href="#extend">擴充</a></li>
+  </ul>
+</nav>
+
+<main id="top">
+
+  <!-- ============================ HERO ============================ -->
+  <section class="hero">
+    <div class="hero-eyebrow">2026 · TOOLKIT DEEP DIVE</div>
+    <h1 class="hero-title">claude-devkit</h1>
+    <p class="hero-lede">
+      Claude Code 跨專案開發輔助 plugin，把 PR 評分與規劃文件合成兩個高頻場景做透。
+      走 Progressive Disclosure 與可切換 profile 的設計，用工具結構承認「沒有銀彈」。
+    </p>
+
+    <div class="hero-kpis">
+      <div>
+        <div class="kpi-value">2<span class="kpi-unit">skills</span></div>
+        <div class="kpi-label">score-pr · plan-writer</div>
+      </div>
+      <div>
+        <div class="kpi-value">5<span class="kpi-unit">profiles</span></div>
+        <div class="kpi-label">可切換評分權重</div>
+      </div>
+      <div>
+        <div class="kpi-value">7<span class="kpi-unit">dims</span></div>
+        <div class="kpi-label">評分維度</div>
+      </div>
+      <div>
+        <div class="kpi-value">3<span class="kpi-unit">tmpl</span></div>
+        <div class="kpi-label">規劃文件樣板</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============================ SECTION 1: INSTALL ============================ -->
+  <section class="content" id="install">
+    <h2>1 · 安裝與快速上手</h2>
+
+    <h3>前置條件</h3>
+    <ul>
+      <li><strong>Claude Code CLI</strong> 已安裝（<a href="https://docs.anthropic.com/en/docs/claude-code">官方文件</a>）</li>
+      <li><strong>GitHub 帳號已透過 <code>gh auth login</code> 登入</strong>（plan-writer 的 <code>--pr</code> 與 score-pr 的 diff 讀取會用到）</li>
+    </ul>
+
+    <h3>三行指令裝起來</h3>
+    <pre><code>/plugin marketplace add suNmerandone/claude-devkit
+/plugin install devkit@suNmerandone-claude-devkit
+/devkit:score-pr</code></pre>
+    <p>預設是 <strong>user scope</strong>，plugin 寫到 <code>~/.claude/</code>，所有專案都能用，不會污染任何專案的 repo。</p>
+
+    <h3>三種 scope 差異</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Scope</th>
+          <th>指令</th>
+          <th>適用</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>user</strong>（預設）</td>
+          <td><code>/plugin install &lt;name&gt;</code></td>
+          <td>個人使用，跨所有專案</td>
+        </tr>
+        <tr>
+          <td><strong>project</strong></td>
+          <td><code>/plugin install &lt;name&gt; --scope project</code></td>
+          <td>團隊共用，寫入 <code>.claude/settings.json</code></td>
+        </tr>
+        <tr>
+          <td><strong>local</strong></td>
+          <td><code>/plugin install &lt;name&gt; --scope local</code></td>
+          <td>僅此專案、gitignored、僅自己</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>更新</h3>
+    <pre><code>/plugin marketplace update
+/plugin update
+/reload-plugins</code></pre>
+  </section>
+
+
+  <!-- ============================ SECTION 2: SCORE-PR ============================ -->
+  <section class="content" id="score-pr">
+    <h2>2 · <code>/devkit:score-pr</code> — PR 品質評分</h2>
+
+    <p>評估當前 branch 相對於 base branch 的變更品質，輸出 <strong>A / B+ / B- / C / D</strong> 等級與分類行動清單。</p>
+
+    <h3>兩種呼叫方式</h3>
+    <p><strong>互動模式</strong>（新手推薦，逐步詢問 4 個問題）：</p>
+    <pre><code>/devkit:score-pr</code></pre>
+
+    <p><strong>快速模式</strong>（熟練者，帶參數直接執行）：</p>
+    <pre><code># 全部用預設
+/devkit:score-pr
+
+# 指定 base branch
+/devkit:score-pr develop
+
+# 啟用 ensemble（3 次獨立評估取眾數）
+/devkit:score-pr --ensemble
+
+# 指定 profile
+/devkit:score-pr --profile brownfield
+
+# 組合
+/devkit:score-pr develop --ensemble --profile brownfield --lang en</code></pre>
+
+    <aside class="callout">
+      <div class="callout-label">Tip</div>
+      <div class="callout-body">
+        <p>互動模式結束時會在輸出末尾提示等價的 direct-mode 指令，下次可直接複製使用以跳過互動。</p>
+      </div>
+    </aside>
+
+    <h3>Profile 選擇邏輯</h3>
+    <p>5 組 profile 的<strong>評分準則與等級對照完全相同</strong>，只有權重不同。依這個決策樹選：</p>
+    <pre class="ascii-tree">是否為 legacy / brownfield 專案？
+├─ 是 → brownfield
+└─ 否 →
+    是否為高風險領域（醫療、金融、航空、驅動）？
+    ├─ 是 → safety-critical
+    └─ 否 →
+        是否為 MVP / POC 階段？
+        ├─ 是 → fast-iteration
+        └─ 否 →
+            嚴格 TDD 文化 + 高測試覆蓋要求？
+            ├─ 是 → test-driven
+            └─ 否 → default</pre>
+
+    <h3>Default vs Brownfield 權重對照</h3>
+    <p>最常被拿來切換的兩組。其他三組的完整權重見 <a href="https://github.com/suNmerandone/claude-devkit/blob/main/skills/score-pr/rubric.md">rubric.md</a>。</p>
+
+    <div class="comparison">
+      <div class="comparison-col">
+        <div class="comparison-head">
+          <span class="comparison-tag">default</span>
+          <div class="comparison-note">通用平衡 · 測試完善、非 legacy</div>
+        </div>
+        <ul class="comparison-list">
+          <li><span class="dim">正確性</span><span class="weight">25%</span></li>
+          <li><span class="dim">測試覆蓋</span><span class="weight">20%</span></li>
+          <li><span class="dim">向後相容</span><span class="weight">15%</span></li>
+          <li><span class="dim">防禦性編碼</span><span class="weight">15%</span></li>
+          <li><span class="dim">可維護性</span><span class="weight">10%</span></li>
+          <li><span class="dim">變更風險</span><span class="weight">10%</span></li>
+          <li><span class="dim">程式碼品質</span><span class="weight">5%</span></li>
+        </ul>
+      </div>
+      <div class="comparison-col comparison-col--accent">
+        <div class="comparison-head">
+          <span class="comparison-tag">brownfield</span>
+          <div class="comparison-note">大型 legacy · 測試壓低、相容提高</div>
+        </div>
+        <ul class="comparison-list">
+          <li><span class="dim">正確性</span><span class="weight">25%</span></li>
+          <li><span class="dim">測試覆蓋</span><span class="weight">10%</span></li>
+          <li><span class="dim">向後相容</span><span class="weight up">20%</span></li>
+          <li><span class="dim">防禦性編碼</span><span class="weight">15%</span></li>
+          <li><span class="dim">可維護性</span><span class="weight">10%</span></li>
+          <li><span class="dim">變更風險</span><span class="weight up">15%</span></li>
+          <li><span class="dim">程式碼品質</span><span class="weight">5%</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <aside class="callout">
+      <div class="callout-label">Note</div>
+      <div class="callout-body">
+        <p>Rubric 作者誠實聲明：「這 5 組權重<strong>不是業界公認標準</strong>」。SonarQube 用 pass/fail 門檻、ISO 25010 不規定權重。建議搭配團隊校準使用 —— 選 3–5 個歷史 PR 跑評分，比對團隊感覺值，調整 profile 選擇。</p>
+      </div>
+    </aside>
+
+    <h3>輸出格式解讀</h3>
+    <pre><code>  D 重新設計       C 需修正       B- 可合併*      B+ 良好       A 優秀
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+                                    ▲
+                              2 項須修正，修完 → B+
+
+──────────────────────────────────────────────────────────────────────
+必須修正
+  ! Undo/Redo Auto-width Width 不一致          → ResizableInput.cs:1518
+  ! TransformInput 缺少 null-safe 存取          → TransformInputOperation.cs:46
+
+建議修正 (修完 → B+)
+  ~ ApplyWidthModeAfterResize 加 null 防護      → ResizableInput.cs:1381
+
+可選
+  - if/else 重複賦值
+
+─ 評估假設 ─────────────────────────────
+  · 使用 Profile：brownfield
+  · 已讀取專案 .claude/CLAUDE.md，套用 Brownfield Rules
+  · 已讀取 .claude/skill/SKILL.md，觸及 2/11 高風險區域
+  · 無自動化測試，評估基於手動測試文件存在性
+
+  11 檔案 | +882 -21 行 | 2/11 高風險區域</code></pre>
+
+    <h3>三類問題符號</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>符號</th>
+          <th>分類</th>
+          <th>對等級的影響</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>!</code></td>
+          <td>必須修正</td>
+          <td>不處理則不應合併；壓低至 B- 或以下</td>
+        </tr>
+        <tr>
+          <td><code>~</code></td>
+          <td>建議修正</td>
+          <td>修完可提升 1 級</td>
+        </tr>
+        <tr>
+          <td><code>-</code></td>
+          <td>可選改善</td>
+          <td>不影響等級判定</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Ensemble 模式</h3>
+    <p><code>--ensemble</code> 啟動 3 個獨立 subagent 同時評估，取眾數為最終等級，標示「一致性：高 / 中」。</p>
+    <ul>
+      <li><strong>用在</strong>：release 前審查、懷疑單次評估波動、新專案第一次建立基準</li>
+      <li><strong>代價</strong>：執行時間 3 倍、token 消耗增加</li>
+      <li><strong>日常</strong>：single mode 即可</li>
+    </ul>
+
+    <h3>專案特定規則自動讀取</h3>
+    <p>若目標專案有 <code>.claude/CLAUDE.md</code>，score-pr 會自動讀取並套用以下章節作為補充 rubric：</p>
+    <ul>
+      <li>Coding Standards / Conventions</li>
+      <li>Brownfield Rules</li>
+      <li>High-Risk Zones / Legacy Surface</li>
+      <li>Architecture &amp; DI</li>
+    </ul>
+    <p>也會讀 <code>.claude/skill/SKILL.md</code> 識別已知高風險區域。若專案無這些檔案，會在「評估假設」區段標示跳過。</p>
+  </section>
+
+
+  <!-- ============================ SECTION 3: PLAN-WRITER ============================ -->
+  <section class="content" id="plan-writer">
+    <h2>3 · <code>/devkit:plan-writer</code> — 規劃文件合成</h2>
+
+    <p>整合 Ticket / Confluence / GitHub PR / 手動描述 多方素材，合成結構化的分析/開發/規劃書。支援互動、混合、快速三種模式。</p>
+
+    <h3>四種資料來源</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>來源</th>
+          <th>參數（可重複）</th>
+          <th>依賴</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Azure DevOps Ticket</td>
+          <td><code>--ticket AB#12345</code></td>
+          <td>Azure DevOps MCP</td>
+        </tr>
+        <tr>
+          <td>Jira Ticket</td>
+          <td><code>--ticket PROJ-123</code></td>
+          <td>Confluence MCP（含 Jira）</td>
+        </tr>
+        <tr>
+          <td>Confluence 頁面</td>
+          <td><code>--confluence &lt;url-or-id&gt;</code></td>
+          <td>Confluence MCP</td>
+        </tr>
+        <tr>
+          <td>GitHub PR / branch</td>
+          <td><code>--pr &lt;url&gt;</code> / <code>--branch &lt;name&gt;</code></td>
+          <td><code>gh</code> CLI</td>
+        </tr>
+        <tr>
+          <td>手動描述</td>
+          <td><code>--desc "&lt;text&gt;"</code></td>
+          <td>無</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <aside class="callout">
+      <div class="callout-label">Design</div>
+      <div class="callout-body">
+        <p>plan-writer 本身<strong>不綁定任何 MCP server</strong> —— 它借用你既有的 Claude Code 環境配置。若你沒裝某個 MCP，plan-writer 會標示該資料源不可用並繼續用其他資料合成。</p>
+      </div>
+    </aside>
+
+    <h3>三種輸出樣板</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>樣板</th>
+          <th>結構重點</th>
+          <th>適用</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>generic</code></td>
+          <td>Scope · Background · Requirements · Approach · Risks · Estimation</td>
+          <td>一般軟體專案</td>
+        </tr>
+        <tr>
+          <td><code>brownfield-plan</code></td>
+          <td>+ Document History · Brownfield Considerations · Confluence v2.1 ACs · 5.5h/day 工時換算</td>
+          <td>大型 legacy 或延續類似慣例的專案</td>
+        </tr>
+        <tr>
+          <td><code>minimal</code></td>
+          <td>Goal · Approach · Estimated Effort</td>
+          <td>POC、概念驗證、輕量任務</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>也可用 <code>--template &lt;path&gt;</code> 指向任意本地 markdown 檔作為自訂樣板；專案若有 <code>.claude/plan-template.md</code>，互動模式會詢問是否使用。</p>
+
+    <h3>三種執行模式</h3>
+    <pre><code># 互動模式 — 逐步問 5–6 題
+/devkit:plan-writer
+
+# 混合模式 — 帶部分參數，缺的項目才問
+/devkit:plan-writer --ticket AB#12345
+
+# 快速模式 — 齊全參數、不問不吵
+/devkit:plan-writer --ticket AB#12345 --template brownfield-plan \
+                   --output doc/plan/MyFeature.md</code></pre>
+
+    <h3>資料不足時的行為</h3>
+    <ul>
+      <li>素材不足的章節標記 <code>&lt;TBD: 具體缺什麼&gt;</code></li>
+      <li>所有 TBD 彙整到文件末的 <code>Metadata</code> 區段</li>
+      <li>絕不捏造素材中沒有的資訊</li>
+      <li>若所有資料源都失敗 → 產出樣板骨架 + 明確「需要補充的資訊」清單</li>
+    </ul>
+
+    <h3>plan-writer 不做什麼</h3>
+    <aside class="callout">
+      <div class="callout-label">Boundary</div>
+      <div class="callout-body">
+        <p>這是規劃工具，不是執行工具。<strong>不</strong>自動建立 Jira subtasks、<strong>不</strong>發佈 Confluence、<strong>不</strong>改 ticket 狀態、<strong>不</strong>執行任何 git 操作（commit / push / branch 切換）。</p>
+        <p>這些都屬於領域特定 plugin 的範疇 —— 若你的團隊需要這類 workflow，應建獨立 plugin（如 <code>acme-toolkit</code>），不該混入 devkit。</p>
+      </div>
+    </aside>
+  </section>
+
+
+  <!-- ============================ SECTION 4: DESIGN PRINCIPLES ============================ -->
+  <section class="content" id="principles">
+    <h2>4 · 設計原則（影響你怎麼用）</h2>
+
+    <p>這些原則不只是哲學，會實際影響你怎麼用、什麼時候該 fallback。</p>
+
+    <h3>SKILL.md vs README.md 職責分離</h3>
+    <p><code>SKILL.md</code> 是給 Claude 讀的英文指令（AI 對英文 system prompt 反應較好、輸出語言另指定為繁中）。<code>README.md</code> 是給人讀的繁中使用者文件。兩者內容<strong>不重複</strong>、不互為註解。</p>
+
+    <h3>Progressive Disclosure</h3>
+    <p>SKILL.md 控制在 500 行內，聚焦核心工作流程。詳細規則拆到 reference 檔案（如 <code>rubric.md</code>），Claude 按需讀取。避免在主 prompt 塞入所有規則稀釋主要指令、增加 token 消耗。</p>
+
+    <h3>保持通用 · 透過讀 CLAUDE.md 注入特化</h3>
+    <p>devkit 的定位是<strong>通用工具</strong>，不硬編碼任何專案特定邏輯。需要專案特化時透過讀目標專案的 <code>.claude/CLAUDE.md</code> 注入規則（score-pr 已實作）。高度綁定特定專案的工具應放在該專案的 <code>.claude/commands/</code>，不進 devkit。</p>
+
+    <h3>雙模式 + Direct-mode Hint</h3>
+    <p>每個 skill 支援互動 + 混合 + 快速三種模式。互動或混合模式結束時會在輸出末尾提示<strong>等價的 direct-mode 指令</strong>，讓使用者能「試著用一次、下次直接跳過互動」。這是刻意設計的學習曲線。</p>
+
+    <h3>不內建領域特定整合</h3>
+    <p>devkit <strong>不提供</strong> MCP server、write-back 操作（自動建 Jira subtask 等）、專案特定 pre-commit hook 或 build wrapper。這些交給領域 plugin 或 <code>.claude/commands/</code>。</p>
+  </section>
+
+
+  <!-- ============================ SECTION 5: EXTEND ============================ -->
+  <section class="content" id="extend">
+    <h2>5 · 擴充與貢獻</h2>
+
+    <h3>新增 skill 的步驟</h3>
+    <p>完整 11 步清單見 <a href="https://github.com/suNmerandone/claude-devkit/blob/main/CONVENTIONS.md">CONVENTIONS.md</a>。核心骨架：</p>
+    <ol>
+      <li>建 <code>skills/&lt;skill-name&gt;/</code> 目錄</li>
+      <li>寫 <code>SKILL.md</code>（英文指令、YAML frontmatter 含 <code>description</code>，指定輸出為繁中）</li>
+      <li>寫 <code>README.md</code>（繁中，用途 + 使用 + 選項 + 範例 + 設計原理）</li>
+      <li>若有詳細參照資料 → 拆獨立檔（如 <code>rubric.md</code>）</li>
+      <li>樣板放 <code>templates/</code>、範例放 <code>examples/</code>（推薦）</li>
+      <li>更新根 README 的「可用工具」表格 + bump <code>plugin.json</code> 的 version（新 skill 為 MINOR）</li>
+    </ol>
+
+    <h3>SemVer 三層</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>層級</th>
+          <th>變更類型</th>
+          <th>範例</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>PATCH</strong></td>
+          <td>rubric 修正、prompt 措辭調整、文件重構</td>
+          <td>調整 score-pr rubric 權重</td>
+        </tr>
+        <tr>
+          <td><strong>MINOR</strong></td>
+          <td>新增 skill、新增重要選項</td>
+          <td>新增 <code>/devkit:plan-writer</code></td>
+        </tr>
+        <tr>
+          <td><strong>MAJOR</strong></td>
+          <td>輸出格式或核心維度 breaking change</td>
+          <td>改變 score-pr 等級區間定義</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>非 Claude Code 使用者</h3>
+    <p>團隊成員用 GitHub Copilot / Cursor / ChatGPT 時，可用獨立 prompt 版本：</p>
+    <ul>
+      <li><a href="https://github.com/suNmerandone/claude-devkit/blob/main/prompts/score-pr.md"><code>prompts/score-pr.md</code></a></li>
+      <li><a href="https://github.com/suNmerandone/claude-devkit/blob/main/prompts/plan-writer.md"><code>prompts/plan-writer.md</code></a></li>
+    </ul>
+    <p>使用相同的 rubric 與輸出格式，但無 ensemble、無自動資料收集、無專案 CLAUDE.md 讀取。</p>
+  </section>
+
+
+  <!-- ============================ TAKEAWAY ============================ -->
+  <aside class="callout callout--accent" style="margin-top: var(--space-16);">
+    <div class="callout-label">Takeaway</div>
+    <div class="callout-body">
+      <p>devkit 不追求大而全，而是把 PR 評分與規劃書合成兩個高頻場景做透。三個結構性選擇值得學：<strong>SKILL.md（機器讀）與 README.md（人讀）職責分離</strong>、<strong>用 profile 承認「沒有銀彈」</strong>、<strong>用讀專案 CLAUDE.md 的機制注入特化而不硬編碼</strong>。讓一個通用 plugin 能適配多種工程文化，不需要為每個客戶派生分支。</p>
+    </div>
+  </aside>
+
+</main>
+
+<footer>
+  <div class="footer-meta" style="max-width: 920px; margin: 0 auto; padding: 0 var(--space-8);">
+    <div>
+      資料來源：<a href="https://github.com/suNmerandone/claude-devkit">suNmerandone/claude-devkit</a>
+      · v0.4.2 · MIT License
+    </div>
+    <div>
+      產出日期：<time datetime="2026-04-18">2026-04-18</time>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

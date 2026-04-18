@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>suNmerandone · Portfolio</title>
+  <meta name="description" content="Personal portfolio — AI content tooling, design systems, and experiments.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-neutral-50:  #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-900: #18181B;
+      --color-accent-500: #FB7185;
+      --color-accent-600: #E11D48;
+      --color-accent-50:  #FFF1F2;
+      --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", "Fira Code", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      color: var(--color-neutral-900);
+      background: var(--color-neutral-50);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--color-neutral-200);
+    }
+    .brand {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      letter-spacing: -0.01em;
+    }
+    .lang-toggle {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+    }
+    .lang-toggle a, .lang-toggle span {
+      text-decoration: none;
+      padding: 0 0.4rem;
+    }
+    .lang-toggle .current { color: var(--color-neutral-900); font-weight: 600; }
+    .lang-toggle a { color: var(--color-neutral-500); border-bottom: 1px dashed transparent; }
+    .lang-toggle a:hover { color: var(--color-accent-600); border-bottom-color: currentColor; }
+    .lang-toggle .sep { color: var(--color-neutral-300); }
+
+    main {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 6rem 2rem 4rem;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--color-accent-600);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-family: var(--font-mono);
+      font-size: clamp(2.5rem, 6vw, 3.8rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin: 0 0 1.5rem 0;
+    }
+    .hero-lede {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: var(--color-neutral-700);
+      max-width: 640px;
+      margin: 0;
+    }
+
+    section.works {
+      margin-top: 6rem;
+    }
+    h2 {
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--color-accent-600);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin: 0 0 2rem 0;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid var(--color-neutral-200);
+    }
+
+    .work {
+      display: block;
+      padding: 1.5rem 1rem 1.5rem 1.5rem;
+      margin: 0 -1rem 1rem -1.5rem;
+      border-left: 3px solid transparent;
+      text-decoration: none;
+      color: inherit;
+      transition: all 160ms ease;
+      border-radius: 0 0.5rem 0.5rem 0;
+    }
+    .work:hover {
+      border-left-color: var(--color-accent-500);
+      background: var(--color-accent-50);
+    }
+    .work-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .work-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--color-neutral-900);
+      margin: 0;
+    }
+    .work-meta {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-neutral-500);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .work-lede {
+      font-size: 0.95rem;
+      color: var(--color-neutral-600);
+      line-height: 1.55;
+      margin: 0 0 0.8rem 0;
+    }
+    .work-tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .work-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.2rem 0.55rem;
+      border: 1px solid var(--color-neutral-200);
+      border-radius: 999px;
+      color: var(--color-neutral-500);
+      letter-spacing: 0.03em;
+    }
+    .work-tag.lang { background: var(--color-neutral-100); }
+    .work-tag.lang-pending { color: var(--color-neutral-400); border-style: dashed; }
+
+    footer {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 4rem 2rem 3rem;
+      border-top: 1px solid var(--color-neutral-200);
+      font-size: 0.85rem;
+      color: var(--color-neutral-500);
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    footer a {
+      color: var(--color-neutral-700);
+      text-decoration: none;
+      border-bottom: 1px dashed var(--color-neutral-400);
+    }
+    footer a:hover { color: var(--color-accent-600); border-bottom-color: currentColor; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">suNmerandone</div>
+  <nav class="lang-toggle">
+    <a href="../" hreflang="zh-Hant">中文</a>
+    <span class="sep">·</span>
+    <span class="current">EN</span>
+  </nav>
+</header>
+
+<main>
+  <div class="hero-eyebrow">Portfolio · 2026</div>
+  <h1>Portfolio</h1>
+  <p class="hero-lede">
+    A collection of outputs from a personal AI content generation system I designed —
+    from the tooling itself to samples produced with it.
+    Everything is built in a private workspace with a traceable skill pipeline;
+    only self-reviewed, public-ready versions land here.
+  </p>
+
+  <section class="works">
+    <h2>Works</h2>
+
+    <a class="work" href="../claude-devkit-guide/">
+      <div class="work-head">
+        <h3 class="work-title">claude-devkit · Deep-Dive Guide</h3>
+        <div class="work-meta">2026-04</div>
+      </div>
+      <p class="work-lede">
+        A guide to a cross-project Claude Code plugin I built — two skills, five scoring profiles, design principles, and extension workflow.
+      </p>
+      <div class="work-tags">
+        <span class="work-tag">technical report</span>
+        <span class="work-tag lang">中文 (published)</span>
+        <span class="work-tag lang lang-pending">EN · translating</span>
+      </div>
+    </a>
+
+    <!-- Add claude-present showcase card here once published -->
+  </section>
+</main>
+
+<footer>
+  <div>© 2026 suNmerandone</div>
+  <div><a href="https://github.com/suNmerandone">GitHub</a></div>
+</footer>
+
+</body>
+</html>
