@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<!-- sync-marker: ZH-2026-04-18 / EN-2026-04-18 -->
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>claude-present · 個人 AI 內容生成系統</title>
-  <meta name="description" content="不是寫 prompt，是設計工具鏈 —— 以 Claude Code Skills 為核心的個人 AI 內容生成系統。">
+  <title>claude-present · 自我演進的系統設計</title>
+  <meta name="description" content="v2 — 一套會自我演進的個人 AI 內容生成系統。不只設計產出規則，還把 failures、governance、自我發布都編碼進架構。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -88,10 +87,7 @@
       position: relative;
     }
     .side-dots a:hover { background: var(--color-neutral-500); transform: scale(1.3); }
-    .side-dots a.active {
-      background: var(--color-accent-500);
-      transform: scale(1.4);
-    }
+    .side-dots a.active { background: var(--color-accent-500); transform: scale(1.4); }
     .side-dots a::after {
       content: attr(data-label);
       position: absolute;
@@ -149,7 +145,14 @@
       font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.02;
+      margin: 0 0 0.5rem 0;
+    }
+    .hero-subtitle {
+      font-size: clamp(1rem, 1.8vw, 1.25rem);
+      font-family: var(--font-mono);
+      color: var(--color-neutral-500);
       margin: 0 0 1.5rem 0;
+      letter-spacing: 0.02em;
     }
     .hero-tagline {
       font-size: clamp(1.15rem, 2.2vw, 1.5rem);
@@ -216,6 +219,8 @@
     }
     .section-body p { margin: 0 0 1rem 0; }
     .section-body p:last-child { margin-bottom: 0; }
+    .section-body ul { padding-left: 1.3em; margin: 1rem 0; }
+    .section-body li { margin: 0.5rem 0; }
 
     .highlight-block {
       display: grid;
@@ -226,9 +231,7 @@
       border-top: 1px solid var(--color-neutral-200);
       border-bottom: 1px solid var(--color-neutral-200);
     }
-    .bg-dark .highlight-block {
-      border-color: var(--color-neutral-700);
-    }
+    .bg-dark .highlight-block { border-color: var(--color-neutral-700); }
     .highlight-label {
       font-family: var(--font-mono);
       font-size: 0.72rem;
@@ -253,10 +256,8 @@
       border-radius: 0.25rem;
       color: var(--color-neutral-800);
     }
-    .bg-dark code {
-      background: var(--color-neutral-800);
-      color: var(--color-neutral-100);
-    }
+    .bg-dark code { background: var(--color-neutral-800); color: var(--color-neutral-100); }
+    .bg-accent code { background: rgba(255, 255, 255, 0.6); }
 
     .cta-link {
       display: inline-flex;
@@ -271,7 +272,7 @@
       border: 1px solid var(--color-accent-500);
       border-radius: 999px;
       transition: all 160ms ease;
-      margin-top: 1.5rem;
+      margin: 0.5rem 0.5rem 0 0;
     }
     .cta-link:hover {
       background: var(--color-accent-500);
@@ -312,160 +313,207 @@
 </nav>
 
 <nav class="side-dots" aria-label="Sections">
-  <a href="#hero"       data-label="Hero"       class="active"></a>
-  <a href="#problem"    data-label="問題"></a>
-  <a href="#design-1"   data-label="設計 1"></a>
-  <a href="#design-2"   data-label="設計 2"></a>
-  <a href="#design-3"   data-label="設計 3"></a>
-  <a href="#sample"     data-label="範例"></a>
-  <a href="#takeaway"   data-label="結語"></a>
+  <a href="#hero"        data-label="Hero"          class="active"></a>
+  <a href="#problem"     data-label="Problem"></a>
+  <a href="#foundation"  data-label="Foundation"></a>
+  <a href="#exhibit-a"   data-label="Governance"></a>
+  <a href="#exhibit-b"   data-label="Self-publish"></a>
+  <a href="#exhibit-c"   data-label="Identity"></a>
+  <a href="#proof"       data-label="Proof"></a>
+  <a href="#takeaway"    data-label="Takeaway"></a>
 </nav>
 
 <!-- ============ 1 · Hero ============ -->
 <section id="hero" class="showcase-section bg-light">
   <div class="showcase-section-inner">
-    <div class="hero-eyebrow">2026 · META-SYSTEM</div>
+    <div class="hero-eyebrow">2026 · LIVING SYSTEM · v2</div>
     <h1 class="hero-title">claude-present</h1>
+    <p class="hero-subtitle">自我演進的個人 AI 內容生成系統</p>
     <p class="hero-tagline">
-      個人 AI 內容生成系統 —— 不是寫 prompt，是設計工具鏈。
-      以 Claude Code Skills 為核心，把風格、結構、反模式全部變成可追蹤的檔案。
+      不只設計產出規則 —— 還把 failures、governance、自我發布都編碼進架構。
+      v2 不是講「我設計了什麼」，是展示**這套系統 live 之後如何自我演進**。
     </p>
 
     <div class="hero-kpis">
       <div>
-        <div class="kpi-value">3<span class="kpi-unit">skills</span></div>
-        <div class="kpi-label">technical-report<br>internal-presentation<br>resume-profile</div>
+        <div class="kpi-value">4<span class="kpi-unit">skills</span></div>
+        <div class="kpi-label">3 個產內容 + 1 個管發布</div>
       </div>
       <div>
-        <div class="kpi-value">1<span class="kpi-unit">source</span></div>
-        <div class="kpi-label">Design system 是風格的唯一真實來源</div>
+        <div class="kpi-value">60<span class="kpi-unit">+ rules</span></div>
+        <div class="kpi-label">失敗經驗 → 規則編碼 · 跨 3 份 anti-patterns.md</div>
       </div>
       <div>
-        <div class="kpi-value">2<span class="kpi-unit">modes</span></div>
-        <div class="kpi-label">Notes mode vs Research mode 明確分流</div>
+        <div class="kpi-value">1<span class="kpi-unit">pipeline</span></div>
+        <div class="kpi-label">Private → public · 自動 privacy 過濾 + 索引重生</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ 2 · Problem ============ -->
+<!-- ============ 2 · Problem（evolved framing） ============ -->
 <section id="problem" class="showcase-section bg-dark">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">01 · Problem</div>
-    <h2 class="section-title">AI 生成的最大敵人，是「每次重新發明」</h2>
+    <div class="section-eyebrow">01 · Problem v2</div>
+    <h2 class="section-title">v1 處理漂移 —— v2 要處理的是 governance</h2>
     <p class="section-lede">
-      直接丟一句「幫我寫報告」給 ChatGPT / Claude，結果每次都不一樣：配色不同、結構不同、語氣不同。
-      風格漂移讓 AI 產出難以累積為資產，更別說建立個人識別。
+      v1 的 claude-present 用 design system + gold standards + iteration logs 解決了 AI 內容「每次重新發明」的漂移問題。但產內容的系統一旦 live，會開始犯**當下看不見、過半年才後悔**的錯。
     </p>
     <div class="section-body">
       <p>
-        問題不在 AI 不夠強，而在**沒有結構**限制 AI 的自由度。
-        每次對話都是空白紙，AI 會重新發明輪子 —— 選配色、選字型、選章節順序、選語氣 ——
-        即使你心裡知道「我要的是跟上次一樣的那種」，沒有檔案化的規則，AI 會重來一次。
+        成熟的系統不是永遠不犯錯，而是能**察覺錯 → 糾正錯 → 把教訓編回架構 → 確保同類錯不再發生**。
+      </p>
+      <p>
+        這份 v2 不再推銷「我設計了一套系統」這個靜態命題。它展示的是一件活的、持續發生的事：**這套系統在 live 之後如何自我演進**。以下三個 exhibit 是這 session 中真實發生的案例。
       </p>
     </div>
   </div>
 </section>
 
-<!-- ============ 3 · Design 1: Design system 單一來源 ============ -->
-<section id="design-1" class="showcase-section bg-light">
+<!-- ============ 3 · Foundation（compressed v1 recap） ============ -->
+<section id="foundation" class="showcase-section bg-tint">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">02 · Design</div>
-    <h2 class="section-title">Design system 是風格的單一真實來源</h2>
+    <div class="section-eyebrow">02 · Foundation</div>
+    <h2 class="section-title">v1 的基礎仍在，但已不是主角</h2>
     <p class="section-lede">
-      <code>tokens.json</code>、<code>patterns.md</code>、<code>components/</code> 放在根目錄 <code>design-system/</code>，
-      所有 skill 共用。每個 skill 只決定自己的結構、語氣、章節邏輯，不決定配色字型。
+      v1 建立三個核心原則，v2 預設你已理解這些：
+    </p>
+    <div class="section-body">
+      <ul>
+        <li><strong>Design system 作為視覺風格單一真實來源</strong>（<code>tokens.json</code> + <code>patterns.md</code> + <code>components/</code>）</li>
+        <li><strong>Skills 必讀 gold standard</strong>、禁止空白紙生成（Progressive Disclosure 三層載入）</li>
+        <li><strong>Outputs 附三件組</strong>（主產物 + source-notes + generation-log），作為系統自我對齊訊號</li>
+      </ul>
+      <p>
+        這是基礎。v2 要講：**當這個基礎 live 起來、開始犯錯、被糾正、學到東西之後，發生了什麼？**
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 · Exhibit A — Governance ============ -->
+<section id="exhibit-a" class="showcase-section bg-accent">
+  <div class="showcase-section-inner">
+    <div class="section-eyebrow">03 · Evolution Exhibit A · Governance</div>
+    <h2 class="section-title">系統察覺錯誤 → 糾正 → 編碼進架構</h2>
+    <p class="section-lede">
+      2026-04-18：AI 為履歷把「<code>Information and Telecommunications Engineering</code>」誤譯為「資訊傳播工程」。正確應是「電腦與通訊工程」（銘傳大學官方系網為準）。
     </p>
     <div class="section-body">
       <p>
-        選 coral 當 accent 色不是隨手挑的，是在 amber / coral / lime 三者間做過 WCAG 對比度檢驗 + Tech Bro 審美評估的決策 ——
-        理由寫在 <code>tokens.json</code> 頂部的 <code>_meta.accent_rationale</code> 欄位。
-        修配色只改一個地方，所有 skill 產出同步變更。
+        使用者 review 時 catch 到。當下修正 <code>resume.html</code> 的譯名 —— 但 claude-present 還做了**第二件事**：把教訓編碼進 <code>resume-profile/references/anti-patterns.md</code> 的第 5 條鐵則。
+      </p>
+      <p>
+        新鐵則內容：「<strong>AI 不得自行翻譯學校 / 系所 / 公司 / 職位 / 證照的官方名稱</strong>」—— 必須要求 user 提供官方名稱或 URL 為準。
+      </p>
+      <p>
+        結果：下次 Claude 讀到 <code>SKILL.md</code> 會看到這條規則寫在最嚴重的鐵則區。同類錯**永不再犯**。
       </p>
     </div>
     <div class="highlight-block">
-      <div class="highlight-label">Core rule</div>
+      <div class="highlight-label">Governance</div>
       <div class="highlight-content">
-        「修改 <code>tokens.json</code> 會影響所有 skill 產出」—— 這句話明文寫在檔頭，讓未來的自己不會不小心動它。
+        「只修當下 output 的叫維護；把教訓編進規則的叫 governance。」claude-present 做第二件事。
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ 4 · Design 2: Skills 讀 gold standard ============ -->
-<section id="design-2" class="showcase-section bg-accent">
+<!-- ============ 5 · Exhibit B — Self-publishing ============ -->
+<section id="exhibit-b" class="showcase-section bg-light">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">03 · Design</div>
-    <h2 class="section-title">Skills 必須讀 gold standard，不准空白紙生成</h2>
+    <div class="section-eyebrow">04 · Evolution Exhibit B · Self-publish</div>
+    <h2 class="section-title">系統開始管理自己的對外表達</h2>
     <p class="section-lede">
-      每個 skill 的 <code>SKILL.md</code> 強制每次產出前讀至少一份 <code>examples/</code> 的範例檔。
-      憑空生成 = 品質掉。讀範例 = 有錨點。
+      v1 時發布是人工 —— 把 HTML 複製到 public repo、手動更新 landing、兩個 repo 各自 commit。v2 把整件事 skill 化。
     </p>
     <div class="section-body">
       <p>
-        搭配 Progressive Disclosure 三層載入：SKILL.md 的 frontmatter 負責觸發匹配、body 負責主流程、
-        references / examples 按需讀取。<code>SKILL.md</code> 本身控制在 500 行內，不把所有規則塞進主 prompt 稀釋指令。
+        新 skill <code>promote-to-showcase</code> 一條管線做完四件事：
+      </p>
+      <ul>
+        <li><strong>選取</strong>：user 必須明確指名（絕不自動 promote all）</li>
+        <li><strong>Privacy 過濾</strong>：移除 <code>.private-only</code> 元素、strip internal sync-marker comments</li>
+        <li><strong>Landing 索引重生</strong>：依 <code>WORK_CARDS_START/END</code> 等 markers 自動重寫索引</li>
+        <li><strong>兩 repo commit + push</strong>：source 保持 immutable、destination 自動部署</li>
+      </ul>
+      <p>
+        <code>.private-only</code> 是核心設計：**同一份 HTML 服務兩種 audience**。寄 PDF 給 hiring manager 時 email 可見；公開 URL 時 email 自動被過濾。
       </p>
     </div>
     <div class="highlight-block">
-      <div class="highlight-label">Iteration</div>
+      <div class="highlight-label">Design</div>
       <div class="highlight-content">
-        滿意的產出複製到 <code>examples/</code> 作為 gold standard；不滿意的具體問題寫進 <code>anti-patterns.md</code>。
-        每次產出都在微調兩端。
+        Private / public 邊界不靠人的記憶、也不靠 code review 盯 —— 靠 marker-driven pipeline 在 promote 的當下自動執行。
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ 5 · Design 3: Outputs = training signal ============ -->
-<section id="design-3" class="showcase-section bg-tint">
+<!-- ============ 6 · Exhibit C — Personal Identity ============ -->
+<section id="exhibit-c" class="showcase-section bg-tint">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">04 · Design</div>
-    <h2 class="section-title">Outputs 本身是迭代訊號</h2>
+    <div class="section-eyebrow">05 · Evolution Exhibit C · Identity</div>
+    <h2 class="section-title">處理最敏感的輸出：個人身份</h2>
     <p class="section-lede">
-      每次產出都附三件組：主產物（<code>index.html</code>）+ <code>source-notes.md</code>（原始輸入逐字保留）
-      + <code>generation-log.md</code>（決策紀錄、採用哪個範例、跳過什麼、避開哪些反模式）。
+      Resume / LinkedIn 是所有輸出類型裡信任成本最高的 —— 一個錯字、一個誇大、一個過時稱號，都可能葬送機會。系統走同一條管線處理，沒有 special case。
     </p>
     <div class="section-body">
       <p>
-        這不是報告附帶的 metadata，是**未來進化的訓練資料**。
-        日後 Claude 產出品質若漂移，回去看同類 output 的 generation-log 就能找回當初的判斷依據；
-        若要調整 skill 行為，看一堆 source-notes 就能發現「使用者其實常給 X 類輸入，SKILL.md 應該為這類輸入設計」。
+        <code>inputs/resume/</code> 目錄收 LinkedIn snapshot PDF、career source data、2022 年舊履歷。<code>resume-profile</code> skill 在 session 中被擴充支援 LinkedIn refresh / rebrand 兩種延伸輸出，以及 <code>interview-material.md</code> 保留「不上履歷但面試要用」的素材。
       </p>
+      <p>
+        <code>.private-only</code> marker 在 email 欄位；<code>promote-to-showcase</code> 自動過濾。產出的 Rebrand guide 在「延後執行」情境下保留完整 context，讓未來回來接續工作不需要重跑討論。
+      </p>
+    </div>
+    <div class="highlight-block">
+      <div class="highlight-label">Stress test</div>
+      <div class="highlight-content">
+        能處理個人身份輸出的系統，能處理任何類型的輸出。Resume 是信任成本的上限。過了這關，其他類型就是子集。
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ============ 6 · Sample ============ -->
-<section id="sample" class="showcase-section bg-light">
+<!-- ============ 7 · Proof ============ -->
+<section id="proof" class="showcase-section bg-light">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">05 · Sample</div>
-    <h2 class="section-title">看個實際產出</h2>
+    <div class="section-eyebrow">06 · Proof</div>
+    <h2 class="section-title">你現在看的這個頁面</h2>
     <p class="section-lede">
-      用 <code>technical-report</code> skill 從 GitHub repo 研究 + 組織 + 產出的深度使用指南。
-      同樣的 design tokens、同樣的 skill 管線、同樣的 bilingual 處理方式。
+      這份 v2 showcase 本身就是 <code>promote-to-showcase</code> skill 的產物。整個 <code>sunmerandone.github.io</code> 是這套系統自我發布的 artifact —— 不是 demo、不是 mock-up，是 live pipeline 的真實輸出。
     </p>
-    <a class="cta-link" href="../claude-devkit-guide/">
-      View claude-devkit guide <span class="arrow">→</span>
-    </a>
+    <div class="section-body">
+      <p>看看其他還在線上的產出：</p>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+      <a class="cta-link" href="/">
+        Portfolio landing <span class="arrow">→</span>
+      </a>
+      <a class="cta-link" href="/claude-devkit-guide/">
+        claude-devkit guide <span class="arrow">→</span>
+      </a>
+      <a class="cta-link" href="/resume/">
+        Resume (ZH) <span class="arrow">→</span>
+      </a>
+    </div>
   </div>
 </section>
 
-<!-- ============ 7 · Takeaway ============ -->
+<!-- ============ 8 · Takeaway ============ -->
 <section id="takeaway" class="showcase-section bg-dark">
   <div class="showcase-section-inner">
     <div class="section-eyebrow">Takeaway</div>
-    <h2 class="section-title">好的 AI 工具，是「收斂 AI」的工具</h2>
+    <h2 class="section-title">成熟度不是 output，是 governance loops</h2>
     <p class="section-lede" style="max-width: 720px;">
-      生成能力已經是 commodity —— 大家手上都有 GPT / Claude。
-      產出品質的差距在於：**有沒有結構性地限制 AI 的自由度**。
-      Design system 限制視覺、anti-patterns 限制內容、examples 限制結構。限制越具體，產出越穩定、越像「你」。
+      AI 內容系統的成熟度，定義不是「它能產什麼」，而是「<strong>它有什麼 governance loops</strong>」。Drift 是低標；能**自我糾正、自我發布、自我演進**，才是門檻。
     </p>
     <div class="section-body">
       <p>
-        claude-present 的核心不是三個 skill，而是**一套讓 AI 不斷自我對齊的機制**。
-        每次產出都是對系統的小幅驗證；每個 anti-pattern 都是對未來的 precaution。
-        這是 AI 內容生成系統的工程化實踐。
+        每個系統都從「我設計了 X」開始。但長期價值在於：它是否能從自己的錯誤中學、管理自己的對外表達、隨需求演進而不失結構。
+      </p>
+      <p>
+        claude-present 的 v2 不是宣傳我設計了什麼。它展示的是：**這三件事在這套系統中真的發生了。**
       </p>
     </div>
   </div>
@@ -474,7 +522,7 @@
 <!-- ============ Footer ============ -->
 <footer class="showcase-footer">
   <div class="footer-inner">
-    <div>© 2026 suNmerandone · <time datetime="2026-04-18">2026-04-18</time></div>
+    <div>© 2026 suNmerandone · v2 · <time datetime="2026-04-18">2026-04-18</time></div>
     <div>
       <a href="https://github.com/suNmerandone">GitHub</a>
       · <a href="/">Portfolio</a>

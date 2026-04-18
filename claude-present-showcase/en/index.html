@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<!-- sync-marker: ZH-2026-04-18 / EN-2026-04-18 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>claude-present · A Personal AI Content Generation System</title>
-  <meta name="description" content="Don't write prompts; design tool pipelines — a personal AI content generation system built on Claude Code Skills.">
+  <title>claude-present · A Self-Evolving System</title>
+  <meta name="description" content="v2 — A self-evolving personal AI content generation system. Failures, governance, and self-publishing are all encoded into the architecture.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -41,29 +40,14 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    .progress-bar {
-      position: fixed;
-      top: 0; left: 0;
-      width: 0;
-      height: 3px;
-      background: var(--color-accent-500);
-      z-index: 100;
-      transition: width 80ms linear;
-    }
+    .progress-bar { position: fixed; top: 0; left: 0; width: 0; height: 3px; background: var(--color-accent-500); z-index: 100; transition: width 80ms linear; }
 
     .lang-toggle {
-      position: fixed;
-      top: 1rem; right: 1.5rem;
-      z-index: 50;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      letter-spacing: 0.05em;
+      position: fixed; top: 1rem; right: 1.5rem; z-index: 50;
+      font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.05em;
       background: rgba(250, 250, 250, 0.92);
-      backdrop-filter: saturate(150%) blur(8px);
-      -webkit-backdrop-filter: saturate(150%) blur(8px);
-      border: 1px solid var(--color-neutral-200);
-      border-radius: 999px;
-      padding: 0.4rem 0.8rem;
+      backdrop-filter: saturate(150%) blur(8px); -webkit-backdrop-filter: saturate(150%) blur(8px);
+      border: 1px solid var(--color-neutral-200); border-radius: 999px; padding: 0.4rem 0.8rem;
     }
     .lang-toggle a, .lang-toggle span { text-decoration: none; padding: 0 0.3rem; }
     .lang-toggle .current { color: var(--color-neutral-900); font-weight: 600; }
@@ -71,60 +55,16 @@
     .lang-toggle a:hover { color: var(--color-accent-600); border-bottom-color: currentColor; }
     .lang-toggle .sep { color: var(--color-neutral-300); }
 
-    .side-dots {
-      position: fixed;
-      right: 1.5rem; top: 50%;
-      transform: translateY(-50%);
-      z-index: 40;
-      display: flex;
-      flex-direction: column;
-      gap: 0.9rem;
-    }
-    .side-dots a {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--color-neutral-300);
-      transition: all 200ms ease;
-      position: relative;
-    }
+    .side-dots { position: fixed; right: 1.5rem; top: 50%; transform: translateY(-50%); z-index: 40; display: flex; flex-direction: column; gap: 0.9rem; }
+    .side-dots a { width: 8px; height: 8px; border-radius: 50%; background: var(--color-neutral-300); transition: all 200ms ease; position: relative; }
     .side-dots a:hover { background: var(--color-neutral-500); transform: scale(1.3); }
-    .side-dots a.active {
-      background: var(--color-accent-500);
-      transform: scale(1.4);
-    }
-    .side-dots a::after {
-      content: attr(data-label);
-      position: absolute;
-      right: 20px; top: 50%;
-      transform: translateY(-50%);
-      font-family: var(--font-mono);
-      font-size: 0.7rem;
-      color: var(--color-neutral-600);
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 120ms ease;
-      background: var(--color-neutral-50);
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
+    .side-dots a.active { background: var(--color-accent-500); transform: scale(1.4); }
+    .side-dots a::after { content: attr(data-label); position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-neutral-600); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 120ms ease; background: var(--color-neutral-50); padding: 2px 6px; border-radius: 4px; }
     .side-dots a:hover::after { opacity: 1; }
-    @media (max-width: 900px) {
-      .side-dots { display: none; }
-    }
+    @media (max-width: 900px) { .side-dots { display: none; } }
 
-    .showcase-section {
-      min-height: 100vh;
-      padding: 6rem 2rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .showcase-section-inner {
-      max-width: 820px;
-      margin: 0 auto;
-      width: 100%;
-    }
+    .showcase-section { min-height: 100vh; padding: 6rem 2rem; display: flex; flex-direction: column; justify-content: center; }
+    .showcase-section-inner { max-width: 820px; margin: 0 auto; width: 100%; }
 
     .bg-light  { background: var(--color-neutral-50); color: var(--color-neutral-900); }
     .bg-tint   { background: var(--color-neutral-100); color: var(--color-neutral-900); }
@@ -135,171 +75,42 @@
     .bg-dark p, .bg-dark .section-lede, .bg-dark .section-body { color: var(--color-neutral-300); }
     .bg-dark .section-eyebrow { color: var(--color-accent-300); }
 
-    .hero-eyebrow {
-      font-family: var(--font-mono);
-      font-size: 0.9rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--color-accent-600);
-      margin-bottom: 1.5rem;
-    }
-    .hero-title {
-      font-family: var(--font-mono);
-      font-size: clamp(2.8rem, 7vw, 4.8rem);
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1.02;
-      margin: 0 0 1.5rem 0;
-    }
-    .hero-tagline {
-      font-size: clamp(1.15rem, 2.2vw, 1.5rem);
-      line-height: 1.55;
-      color: var(--color-neutral-600);
-      max-width: 720px;
-      margin: 0 0 3rem 0;
-      font-weight: 400;
-    }
-    .hero-kpis {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 2rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--color-neutral-200);
-    }
-    .kpi-value {
-      font-size: clamp(2rem, 4vw, 3rem);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      line-height: 1;
-    }
-    .kpi-unit {
-      font-family: var(--font-mono);
-      font-size: 0.4em;
-      color: var(--color-accent-500);
-      margin-left: 0.2em;
-    }
-    .kpi-label {
-      font-size: 0.85rem;
-      color: var(--color-neutral-500);
-      margin-top: 0.45rem;
-      line-height: 1.5;
-    }
+    .hero-eyebrow { font-family: var(--font-mono); font-size: 0.9rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-600); margin-bottom: 1.5rem; }
+    .hero-title { font-family: var(--font-mono); font-size: clamp(2.8rem, 7vw, 4.8rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; margin: 0 0 0.5rem 0; }
+    .hero-subtitle { font-size: clamp(1rem, 1.8vw, 1.25rem); font-family: var(--font-mono); color: var(--color-neutral-500); margin: 0 0 1.5rem 0; letter-spacing: 0.02em; }
+    .hero-tagline { font-size: clamp(1.15rem, 2.2vw, 1.5rem); line-height: 1.55; color: var(--color-neutral-600); max-width: 720px; margin: 0 0 3rem 0; font-weight: 400; }
+    .hero-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-neutral-200); }
+    .kpi-value { font-size: clamp(2rem, 4vw, 3rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+    .kpi-unit { font-family: var(--font-mono); font-size: 0.4em; color: var(--color-accent-500); margin-left: 0.2em; }
+    .kpi-label { font-size: 0.85rem; color: var(--color-neutral-500); margin-top: 0.45rem; line-height: 1.5; }
 
-    .section-eyebrow {
-      font-family: var(--font-mono);
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--color-accent-600);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 1rem;
-    }
-    .section-title {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 700;
-      line-height: 1.18;
-      letter-spacing: -0.02em;
-      margin: 0 0 1.5rem 0;
-    }
-    .section-lede {
-      font-size: clamp(1.05rem, 1.6vw, 1.25rem);
-      line-height: 1.65;
-      color: var(--color-neutral-700);
-      max-width: 680px;
-      margin: 0 0 1.8rem 0;
-    }
-    .section-body {
-      font-size: 1rem;
-      line-height: 1.75;
-      color: var(--color-neutral-700);
-      max-width: 680px;
-    }
+    .section-eyebrow { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: var(--color-accent-600); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1rem; }
+    .section-title { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; line-height: 1.18; letter-spacing: -0.02em; margin: 0 0 1.5rem 0; }
+    .section-lede { font-size: clamp(1.05rem, 1.6vw, 1.25rem); line-height: 1.65; color: var(--color-neutral-700); max-width: 680px; margin: 0 0 1.8rem 0; }
+    .section-body { font-size: 1rem; line-height: 1.75; color: var(--color-neutral-700); max-width: 680px; }
     .section-body p { margin: 0 0 1rem 0; }
     .section-body p:last-child { margin-bottom: 0; }
+    .section-body ul { padding-left: 1.3em; margin: 1rem 0; }
+    .section-body li { margin: 0.5rem 0; }
 
-    .highlight-block {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 1rem 1.5rem;
-      padding: 1.5rem 0;
-      margin: 1.5rem 0;
-      border-top: 1px solid var(--color-neutral-200);
-      border-bottom: 1px solid var(--color-neutral-200);
-    }
-    .bg-dark .highlight-block {
-      border-color: var(--color-neutral-700);
-    }
-    .highlight-label {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--color-accent-500);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding-top: 0.2rem;
-      white-space: nowrap;
-    }
-    .highlight-content {
-      font-size: 0.95rem;
-      color: var(--color-neutral-700);
-    }
+    .highlight-block { display: grid; grid-template-columns: auto 1fr; gap: 1rem 1.5rem; padding: 1.5rem 0; margin: 1.5rem 0; border-top: 1px solid var(--color-neutral-200); border-bottom: 1px solid var(--color-neutral-200); }
+    .bg-dark .highlight-block { border-color: var(--color-neutral-700); }
+    .highlight-label { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; color: var(--color-accent-500); text-transform: uppercase; letter-spacing: 0.08em; padding-top: 0.2rem; white-space: nowrap; }
+    .highlight-content { font-size: 0.95rem; color: var(--color-neutral-700); }
     .bg-dark .highlight-content { color: var(--color-neutral-300); }
 
-    code {
-      font-family: var(--font-mono);
-      font-size: 0.9em;
-      background: var(--color-neutral-100);
-      padding: 0.12em 0.4em;
-      border-radius: 0.25rem;
-      color: var(--color-neutral-800);
-    }
-    .bg-dark code {
-      background: var(--color-neutral-800);
-      color: var(--color-neutral-100);
-    }
+    code { font-family: var(--font-mono); font-size: 0.9em; background: var(--color-neutral-100); padding: 0.12em 0.4em; border-radius: 0.25rem; color: var(--color-neutral-800); }
+    .bg-dark code { background: var(--color-neutral-800); color: var(--color-neutral-100); }
+    .bg-accent code { background: rgba(255, 255, 255, 0.6); }
 
-    .cta-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: var(--font-mono);
-      font-size: 0.95rem;
-      font-weight: 500;
-      color: var(--color-accent-600);
-      text-decoration: none;
-      padding: 0.85rem 1.4rem;
-      border: 1px solid var(--color-accent-500);
-      border-radius: 999px;
-      transition: all 160ms ease;
-      margin-top: 1.5rem;
-    }
-    .cta-link:hover {
-      background: var(--color-accent-500);
-      color: white;
-    }
+    .cta-link { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-mono); font-size: 0.95rem; font-weight: 500; color: var(--color-accent-600); text-decoration: none; padding: 0.85rem 1.4rem; border: 1px solid var(--color-accent-500); border-radius: 999px; transition: all 160ms ease; margin: 0.5rem 0.5rem 0 0; }
+    .cta-link:hover { background: var(--color-accent-500); color: white; }
     .cta-link .arrow { transition: transform 160ms ease; }
     .cta-link:hover .arrow { transform: translateX(3px); }
 
-    .showcase-footer {
-      padding: 4rem 2rem 3rem;
-      background: var(--color-neutral-100);
-      border-top: 1px solid var(--color-neutral-200);
-    }
-    .footer-inner {
-      max-width: 820px;
-      margin: 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 1rem;
-      font-size: 0.85rem;
-      color: var(--color-neutral-500);
-    }
-    .footer-inner a {
-      color: var(--color-neutral-700);
-      text-decoration: none;
-      border-bottom: 1px dashed var(--color-neutral-400);
-    }
+    .showcase-footer { padding: 4rem 2rem 3rem; background: var(--color-neutral-100); border-top: 1px solid var(--color-neutral-200); }
+    .footer-inner { max-width: 820px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; font-size: 0.85rem; color: var(--color-neutral-500); }
+    .footer-inner a { color: var(--color-neutral-700); text-decoration: none; border-bottom: 1px dashed var(--color-neutral-400); }
     .footer-inner a:hover { color: var(--color-accent-600); border-bottom-color: currentColor; }
   </style>
 </head>
@@ -312,38 +123,39 @@
 </nav>
 
 <nav class="side-dots" aria-label="Sections">
-  <a href="#hero"       data-label="Hero"       class="active"></a>
-  <a href="#problem"    data-label="Problem"></a>
-  <a href="#design-1"   data-label="Design 1"></a>
-  <a href="#design-2"   data-label="Design 2"></a>
-  <a href="#design-3"   data-label="Design 3"></a>
-  <a href="#sample"     data-label="Sample"></a>
-  <a href="#takeaway"   data-label="Takeaway"></a>
+  <a href="#hero"        data-label="Hero"          class="active"></a>
+  <a href="#problem"     data-label="Problem"></a>
+  <a href="#foundation"  data-label="Foundation"></a>
+  <a href="#exhibit-a"   data-label="Governance"></a>
+  <a href="#exhibit-b"   data-label="Self-publish"></a>
+  <a href="#exhibit-c"   data-label="Identity"></a>
+  <a href="#proof"       data-label="Proof"></a>
+  <a href="#takeaway"    data-label="Takeaway"></a>
 </nav>
 
 <!-- ============ 1 · Hero ============ -->
 <section id="hero" class="showcase-section bg-light">
   <div class="showcase-section-inner">
-    <div class="hero-eyebrow">2026 · META-SYSTEM</div>
+    <div class="hero-eyebrow">2026 · LIVING SYSTEM · v2</div>
     <h1 class="hero-title">claude-present</h1>
+    <p class="hero-subtitle">A self-evolving personal AI content generation system</p>
     <p class="hero-tagline">
-      A personal AI content generation system — don't write prompts, design tool pipelines.
-      Built on Claude Code Skills, with style, structure, and anti-patterns all captured as
-      tracked files rather than vibes.
+      Beyond designing what gets produced — failures, governance, and self-publishing are all encoded into the architecture.
+      v2 is not about <em>what I built</em>. It is about <strong>what the system did after it went live</strong>.
     </p>
 
     <div class="hero-kpis">
       <div>
-        <div class="kpi-value">3<span class="kpi-unit">skills</span></div>
-        <div class="kpi-label">technical-report<br>internal-presentation<br>resume-profile</div>
+        <div class="kpi-value">4<span class="kpi-unit">skills</span></div>
+        <div class="kpi-label">Three that produce content · one that manages publishing</div>
       </div>
       <div>
-        <div class="kpi-value">1<span class="kpi-unit">source</span></div>
-        <div class="kpi-label">Design system as single source of visual truth</div>
+        <div class="kpi-value">60<span class="kpi-unit">+ rules</span></div>
+        <div class="kpi-label">Failures encoded across three anti-patterns.md files</div>
       </div>
       <div>
-        <div class="kpi-value">2<span class="kpi-unit">modes</span></div>
-        <div class="kpi-label">Notes vs research — explicit input dispatch</div>
+        <div class="kpi-value">1<span class="kpi-unit">pipeline</span></div>
+        <div class="kpi-label">Private → public · auto privacy filter + index regeneration</div>
       </div>
     </div>
   </div>
@@ -352,131 +164,166 @@
 <!-- ============ 2 · Problem ============ -->
 <section id="problem" class="showcase-section bg-dark">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">01 · Problem</div>
-    <h2 class="section-title">AI output's worst enemy is re-inventing every time</h2>
+    <div class="section-eyebrow">01 · Problem v2</div>
+    <h2 class="section-title">v1 fought drift — v2 is about governance</h2>
     <p class="section-lede">
-      Ask ChatGPT or Claude "write me a report" cold, and every run looks different —
-      different colors, different structure, different voice. Style drift means AI
-      output never compounds into an asset, let alone a personal identity.
+      The v1 of claude-present used a design system, gold standards, and iteration logs to solve AI content drift — the "reinvent from scratch every time" problem. But once a content-generating system goes live, it starts making <em>a different class of errors</em>: errors invisible at the moment, regrettable six months later.
     </p>
     <div class="section-body">
       <p>
-        The problem isn't that the AI is weak; it's that <strong>nothing constrains the AI's freedom</strong>.
-        Every conversation is a blank page, so the model re-invents wheels — picking colors,
-        picking fonts, picking section orders, picking tone. Even if you know in your head
-        "I want the same kind as last time," without codified rules the AI starts over.
+        Mature systems aren't those that never err. They're those that can <strong>notice the error, correct it, encode the lesson back into the architecture, and ensure the same failure class cannot recur</strong>.
+      </p>
+      <p>
+        This v2 doesn't pitch "I designed a system" as a static claim. It shows something <em>living</em>: how this system actually evolved itself after going live. Three exhibits below — all of them happened for real in this session.
       </p>
     </div>
   </div>
 </section>
 
-<!-- ============ 3 · Design 1 ============ -->
-<section id="design-1" class="showcase-section bg-light">
+<!-- ============ 3 · Foundation ============ -->
+<section id="foundation" class="showcase-section bg-tint">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">02 · Design</div>
-    <h2 class="section-title">Design system as the single source of visual truth</h2>
+    <div class="section-eyebrow">02 · Foundation</div>
+    <h2 class="section-title">v1's foundation is still here — just no longer the headline</h2>
     <p class="section-lede">
-      <code>tokens.json</code>, <code>patterns.md</code>, and <code>components/</code> live at the repo root under <code>design-system/</code>,
-      shared by every skill. Each skill only decides its own structure, tone, and section logic —
-      never colors or fonts.
+      v1 established three core principles. v2 assumes you've internalized them:
+    </p>
+    <div class="section-body">
+      <ul>
+        <li><strong>Design system as single source of visual truth</strong> (<code>tokens.json</code> + <code>patterns.md</code> + <code>components/</code>)</li>
+        <li><strong>Skills must read a gold standard</strong> — no blank-canvas generation (three-layer progressive disclosure)</li>
+        <li><strong>Outputs ship three artifacts</strong> (deliverable + source-notes + generation-log), turning every run into a self-alignment signal</li>
+      </ul>
+      <p>
+        That's the foundation. v2 asks: <strong>what happened once this foundation went live, started making mistakes, was corrected, and learned from them?</strong>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 · Exhibit A — Governance ============ -->
+<section id="exhibit-a" class="showcase-section bg-accent">
+  <div class="showcase-section-inner">
+    <div class="section-eyebrow">03 · Evolution Exhibit A · Governance</div>
+    <h2 class="section-title">Notice → correct → encode into architecture</h2>
+    <p class="section-lede">
+      2026-04-18: While producing a resume, the AI mistranslated "<code>Information and Telecommunications Engineering</code>" as "資訊傳播工程" (Information &amp; Communication Design). The correct term is "電腦與通訊工程" (Computer &amp; Communication Engineering) — verified against the Ming Chuan University department site.
     </p>
     <div class="section-body">
       <p>
-        The coral accent wasn't picked randomly — it came from a weighted comparison across amber, coral,
-        and lime, factoring in WCAG contrast ratios and a "tech bro aesthetic" penalty. The reasoning
-        lives in <code>tokens.json</code>'s top <code>_meta.accent_rationale</code> field.
-        Change one color here and every skill's output shifts in sync.
+        The user caught it during review. The immediate fix was in <code>resume.html</code>. But claude-present did <strong>a second thing</strong>: it encoded the lesson into <code>resume-profile/references/anti-patterns.md</code> as rule #5, promoted into the top-tier (鐵則) of the anti-pattern list.
+      </p>
+      <p>
+        The rule: "<strong>AI must not translate the official names of schools, departments, companies, titles, or certifications.</strong>" It must request the official name or source URL from the user — never guess via common-sense translation.
+      </p>
+      <p>
+        The effect: next time Claude reads <code>SKILL.md</code>, it sees this rule in the top-tier anti-pattern region. The same failure class <strong>cannot recur silently</strong>.
       </p>
     </div>
     <div class="highlight-block">
-      <div class="highlight-label">Core rule</div>
+      <div class="highlight-label">Governance</div>
       <div class="highlight-content">
-        "Modifying <code>tokens.json</code> affects every skill's output" is written into the file's
-        own header, so future-me doesn't accidentally drift it.
+        "Fixing the current output is maintenance. Encoding the lesson into rules is governance." claude-present does the second.
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ 4 · Design 2 ============ -->
-<section id="design-2" class="showcase-section bg-accent">
+<!-- ============ 5 · Exhibit B — Self-publishing ============ -->
+<section id="exhibit-b" class="showcase-section bg-light">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">03 · Design</div>
-    <h2 class="section-title">Skills must read a gold standard — no blank-canvas generation</h2>
+    <div class="section-eyebrow">04 · Evolution Exhibit B · Self-publish</div>
+    <h2 class="section-title">The system now manages its own public expression</h2>
     <p class="section-lede">
-      Every skill's <code>SKILL.md</code> enforces reading at least one file from <code>examples/</code> before generating.
-      Blank-canvas = quality drops. Anchor on an example = consistency compounds.
+      In v1, publishing was manual: copy HTML to the public repo, hand-update the landing, commit each repo separately. v2 captures the entire act as a skill.
     </p>
     <div class="section-body">
       <p>
-        Paired with progressive disclosure in three layers: the frontmatter handles trigger matching,
-        the body holds the main flow, and <code>references/</code> / <code>examples/</code> are loaded on demand.
-        <code>SKILL.md</code> stays under 500 lines — never stuffing all rules into the main prompt,
-        which would dilute instructions and waste tokens.
+        The new <code>promote-to-showcase</code> skill does four things in one pipeline:
+      </p>
+      <ul>
+        <li><strong>Selection</strong>: the user must name items explicitly — never auto-promote all</li>
+        <li><strong>Privacy filtering</strong>: strips <code>.private-only</code> elements, removes internal <code>sync-marker</code> comments</li>
+        <li><strong>Landing regeneration</strong>: rewrites index cards between <code>WORK_CARDS_START/END</code> and <code>RESUME_CARDS_START/END</code> markers</li>
+        <li><strong>Two-repo commit + push</strong>: source stays immutable, destination auto-deploys</li>
+      </ul>
+      <p>
+        <code>.private-only</code> is the design crux: <strong>one HTML serves two audiences</strong>. Emailing a PDF to a hiring manager? Email visible. Public URL? Email filtered. Zero manual intervention.
       </p>
     </div>
     <div class="highlight-block">
-      <div class="highlight-label">Iteration</div>
+      <div class="highlight-label">Design</div>
       <div class="highlight-content">
-        Promote satisfying outputs into <code>examples/</code> as new gold standards; record concrete
-        failure modes into <code>anti-patterns.md</code>. Every generation fine-tunes both ends.
+        The private / public boundary is not enforced by human memory or code review — it is enforced at promote-time by a marker-driven pipeline.
       </div>
     </div>
   </div>
 </section>
 
-<!-- ============ 5 · Design 3 ============ -->
-<section id="design-3" class="showcase-section bg-tint">
+<!-- ============ 6 · Exhibit C — Personal Identity ============ -->
+<section id="exhibit-c" class="showcase-section bg-tint">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">04 · Design</div>
-    <h2 class="section-title">Outputs themselves are the iteration signal</h2>
+    <div class="section-eyebrow">05 · Evolution Exhibit C · Identity</div>
+    <h2 class="section-title">Handling the most sensitive output class: personal identity</h2>
     <p class="section-lede">
-      Every output ships with three artifacts: the main deliverable (<code>index.html</code>),
-      <code>source-notes.md</code> (user's raw input, verbatim), and
-      <code>generation-log.md</code> (decisions, which example was referenced, what was skipped, which anti-patterns were avoided).
+      Resume and LinkedIn carry the highest trust cost of any output type. One typo, one exaggeration, one outdated title can sink an opportunity. The system handles these through the same pipeline — no special case.
     </p>
     <div class="section-body">
       <p>
-        This isn't metadata tacked onto reports — it's <strong>training data for future evolution</strong>.
-        If output quality drifts later, the matching generation-log tells you what the original reasoning was.
-        If the skill needs adjusting, scanning a stack of source-notes reveals "users actually feed this kind of input —
-        the SKILL.md should optimize for that."
+        <code>inputs/resume/</code> holds the LinkedIn snapshot PDF, career source data, and a 2022-era resume. The <code>resume-profile</code> skill was extended mid-session to support LinkedIn refresh / rebrand guides and an <code>interview-material.md</code> file preserving "assertive content not suitable for the resume but valuable in the interview."
       </p>
+      <p>
+        The <code>.private-only</code> marker wraps the email field. The <code>promote-to-showcase</code> skill filters it automatically. The rebrand guide itself was produced as a <em>deferred-execution</em> artifact — complete context preserved, ready for a future session to resume without re-deriving the strategy.
+      </p>
+    </div>
+    <div class="highlight-block">
+      <div class="highlight-label">Stress test</div>
+      <div class="highlight-content">
+        A system that can handle personal-identity outputs can handle any output class. Resumes are the ceiling of trust cost. Passing this test, other types are subsets.
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ============ 6 · Sample ============ -->
-<section id="sample" class="showcase-section bg-light">
+<!-- ============ 7 · Proof ============ -->
+<section id="proof" class="showcase-section bg-light">
   <div class="showcase-section-inner">
-    <div class="section-eyebrow">05 · Sample</div>
-    <h2 class="section-title">A real output</h2>
+    <div class="section-eyebrow">06 · Proof</div>
+    <h2 class="section-title">The page you are on right now</h2>
     <p class="section-lede">
-      A deep-dive guide produced by <code>technical-report</code> — research mode, fed nothing but a GitHub URL,
-      output a full HTML single-pager. Same design tokens, same skill pipeline, same bilingual treatment.
+      This v2 showcase is itself an artifact of the <code>promote-to-showcase</code> skill. The entire <code>sunmerandone.github.io</code> site is what the system publishes of itself — not a demo, not a mock-up. It is the live pipeline's real output.
     </p>
-    <a class="cta-link" href="../../claude-devkit-guide/en/">
-      View claude-devkit guide <span class="arrow">→</span>
-    </a>
+    <div class="section-body">
+      <p>Other artifacts currently live:</p>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+      <a class="cta-link" href="/en/">
+        Portfolio landing <span class="arrow">→</span>
+      </a>
+      <a class="cta-link" href="/claude-devkit-guide/en/">
+        claude-devkit guide <span class="arrow">→</span>
+      </a>
+      <a class="cta-link" href="/resume/en/">
+        Resume (EN) <span class="arrow">→</span>
+      </a>
+    </div>
   </div>
 </section>
 
-<!-- ============ 7 · Takeaway ============ -->
+<!-- ============ 8 · Takeaway ============ -->
 <section id="takeaway" class="showcase-section bg-dark">
   <div class="showcase-section-inner">
     <div class="section-eyebrow">Takeaway</div>
-    <h2 class="section-title">Good AI tooling is tooling that <em>constrains</em> the AI</h2>
+    <h2 class="section-title">Maturity isn't output — it's governance loops</h2>
     <p class="section-lede" style="max-width: 720px;">
-      Generation is commodity now — everyone has GPT or Claude.
-      The quality gap comes from <strong>how much structure you impose on AI's freedom</strong>.
-      Design systems constrain visuals; anti-patterns constrain content; examples constrain structure.
-      The more specific the constraint, the more stable — and more "yours" — the output.
+      The maturity of an AI content system is defined not by what it produces, but by <strong>what governance loops it contains</strong>. Drift is the baseline. <strong>Self-correction, self-publishing, and self-evolution</strong> — that's the bar.
     </p>
     <div class="section-body">
       <p>
-        The core of claude-present isn't the three skills; it's <strong>a mechanism for AI to continuously self-align</strong>.
-        Every output is a small validation of the system. Every anti-pattern is a precaution against future drift.
-        This is what engineering discipline looks like when applied to AI content generation.
+        Every system begins with "I designed X." Long-term value depends on whether it can learn from its own mistakes, manage its own public expression, and evolve with demand while preserving its structure.
+      </p>
+      <p>
+        v2 of claude-present is not selling what I designed. It shows: <strong>all three of these actually happened in this system.</strong>
       </p>
     </div>
   </div>
@@ -485,7 +332,7 @@
 <!-- ============ Footer ============ -->
 <footer class="showcase-footer">
   <div class="footer-inner">
-    <div>© 2026 suNmerandone · <time datetime="2026-04-18">2026-04-18</time></div>
+    <div>© 2026 suNmerandone · v2 · <time datetime="2026-04-18">2026-04-18</time></div>
     <div>
       <a href="https://github.com/suNmerandone">GitHub</a>
       · <a href="/en/">Portfolio</a>
