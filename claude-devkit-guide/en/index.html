@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>claude-devkit · 使用深度指南</title>
-  <meta name="description" content="Claude Code 跨專案開發輔助 plugin，PR 評分與規劃文件合成工具的完整使用指南。">
+  <title>claude-devkit · Deep-Dive Guide</title>
+  <meta name="description" content="A cross-project Claude Code plugin for PR scoring and planning document composition — complete usage guide.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -397,15 +397,15 @@
 </head>
 <body>
 
-<nav class="topnav" aria-label="主要章節">
+<nav class="topnav" aria-label="Main sections">
   <a href="#top" class="topnav-brand">claude-devkit · guide</a>
   <ul class="topnav-list">
-    <li><a href="#install">安裝</a></li>
+    <li><a href="#install">Install</a></li>
     <li><a href="#score-pr">score-pr</a></li>
     <li><a href="#plan-writer">plan-writer</a></li>
-    <li><a href="#principles">設計原則</a></li>
-    <li><a href="#extend">擴充</a></li>
-    <li class="nav-lang"><span class="current">中文</span><span class="sep">·</span><a href="./en/" hreflang="en">EN</a></li>
+    <li><a href="#principles">Principles</a></li>
+    <li><a href="#extend">Extend</a></li>
+    <li class="nav-lang"><a href="../" hreflang="zh-Hant">中文</a><span class="sep">·</span><span class="current">EN</span></li>
   </ul>
 </nav>
 
@@ -416,8 +416,9 @@
     <div class="hero-eyebrow">2026 · TOOLKIT DEEP DIVE</div>
     <h1 class="hero-title">claude-devkit</h1>
     <p class="hero-lede">
-      Claude Code 跨專案開發輔助 plugin，把 PR 評分與規劃文件合成兩個高頻場景做透。
-      走 Progressive Disclosure 與可切換 profile 的設計，用工具結構承認「沒有銀彈」。
+      A cross-project Claude Code plugin that goes deep on two high-frequency scenarios: PR scoring
+      and planning-document composition. Built around progressive disclosure and switchable profiles —
+      structural acknowledgment that there is no silver bullet.
     </p>
 
     <div class="hero-kpis">
@@ -427,15 +428,15 @@
       </div>
       <div>
         <div class="kpi-value">5<span class="kpi-unit">profiles</span></div>
-        <div class="kpi-label">可切換評分權重</div>
+        <div class="kpi-label">switchable scoring weights</div>
       </div>
       <div>
         <div class="kpi-value">7<span class="kpi-unit">dims</span></div>
-        <div class="kpi-label">評分維度</div>
+        <div class="kpi-label">scoring dimensions</div>
       </div>
       <div>
         <div class="kpi-value">3<span class="kpi-unit">tmpl</span></div>
-        <div class="kpi-label">規劃文件樣板</div>
+        <div class="kpi-label">planning templates</div>
       </div>
     </div>
   </section>
@@ -443,49 +444,49 @@
 
   <!-- ============================ SECTION 1: INSTALL ============================ -->
   <section class="content" id="install">
-    <h2>1 · 安裝與快速上手</h2>
+    <h2>1 · Install &amp; Quick Start</h2>
 
-    <h3>前置條件</h3>
+    <h3>Prerequisites</h3>
     <ul>
-      <li><strong>Claude Code CLI</strong> 已安裝（<a href="https://docs.anthropic.com/en/docs/claude-code">官方文件</a>）</li>
-      <li><strong>GitHub 帳號已透過 <code>gh auth login</code> 登入</strong>（plan-writer 的 <code>--pr</code> 與 score-pr 的 diff 讀取會用到）</li>
+      <li><strong>Claude Code CLI</strong> installed (<a href="https://docs.anthropic.com/en/docs/claude-code">official docs</a>)</li>
+      <li><strong>GitHub account authenticated via <code>gh auth login</code></strong> (used by plan-writer's <code>--pr</code> and score-pr's diff reading)</li>
     </ul>
 
-    <h3>三行指令裝起來</h3>
+    <h3>Three lines to install</h3>
     <pre><code>/plugin marketplace add suNmerandone/claude-devkit
 /plugin install devkit@suNmerandone-claude-devkit
 /devkit:score-pr</code></pre>
-    <p>預設是 <strong>user scope</strong>，plugin 寫到 <code>~/.claude/</code>，所有專案都能用，不會污染任何專案的 repo。</p>
+    <p>Default scope is <strong>user</strong> — plugin lives in <code>~/.claude/</code>, works across every project, pollutes no repo.</p>
 
-    <h3>三種 scope 差異</h3>
+    <h3>Three scopes</h3>
     <table>
       <thead>
         <tr>
           <th>Scope</th>
-          <th>指令</th>
-          <th>適用</th>
+          <th>Command</th>
+          <th>When to use</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>user</strong>（預設）</td>
+          <td><strong>user</strong> (default)</td>
           <td><code>/plugin install &lt;name&gt;</code></td>
-          <td>個人使用，跨所有專案</td>
+          <td>Personal use, across all projects</td>
         </tr>
         <tr>
           <td><strong>project</strong></td>
           <td><code>/plugin install &lt;name&gt; --scope project</code></td>
-          <td>團隊共用，寫入 <code>.claude/settings.json</code></td>
+          <td>Team-shared, written into <code>.claude/settings.json</code></td>
         </tr>
         <tr>
           <td><strong>local</strong></td>
           <td><code>/plugin install &lt;name&gt; --scope local</code></td>
-          <td>僅此專案、gitignored、僅自己</td>
+          <td>This project only, gitignored, just for you</td>
         </tr>
       </tbody>
     </table>
 
-    <h3>更新</h3>
+    <h3>Update</h3>
     <pre><code>/plugin marketplace update
 /plugin update
 /reload-plugins</code></pre>
@@ -494,84 +495,84 @@
 
   <!-- ============================ SECTION 2: SCORE-PR ============================ -->
   <section class="content" id="score-pr">
-    <h2>2 · <code>/devkit:score-pr</code> — PR 品質評分</h2>
+    <h2>2 · <code>/devkit:score-pr</code> — PR Quality Scoring</h2>
 
-    <p>評估當前 branch 相對於 base branch 的變更品質，輸出 <strong>A / B+ / B- / C / D</strong> 等級與分類行動清單。</p>
+    <p>Evaluates the current branch against the base branch, outputs a grade <strong>A / B+ / B- / C / D</strong> plus a categorized action list.</p>
 
-    <h3>兩種呼叫方式</h3>
-    <p><strong>互動模式</strong>（新手推薦，逐步詢問 4 個問題）：</p>
+    <h3>Two ways to invoke</h3>
+    <p><strong>Interactive mode</strong> (recommended for newcomers — walks you through 4 questions):</p>
     <pre><code>/devkit:score-pr</code></pre>
 
-    <p><strong>快速模式</strong>（熟練者，帶參數直接執行）：</p>
-    <pre><code># 全部用預設
+    <p><strong>Direct mode</strong> (power users — pass arguments, skip the prompts):</p>
+    <pre><code># All defaults
 /devkit:score-pr
 
-# 指定 base branch
+# Specify base branch
 /devkit:score-pr develop
 
-# 啟用 ensemble（3 次獨立評估取眾數）
+# Enable ensemble (3 independent evaluations, take the mode)
 /devkit:score-pr --ensemble
 
-# 指定 profile
+# Pick a profile
 /devkit:score-pr --profile brownfield
 
-# 組合
+# Combined
 /devkit:score-pr develop --ensemble --profile brownfield --lang en</code></pre>
 
     <aside class="callout">
       <div class="callout-label">Tip</div>
       <div class="callout-body">
-        <p>互動模式結束時會在輸出末尾提示等價的 direct-mode 指令，下次可直接複製使用以跳過互動。</p>
+        <p>At the end of interactive mode, the output appends the equivalent direct-mode command — copy it next time to skip the interactive flow.</p>
       </div>
     </aside>
 
-    <h3>Profile 選擇邏輯</h3>
-    <p>5 組 profile 的<strong>評分準則與等級對照完全相同</strong>，只有權重不同。依這個決策樹選：</p>
-    <pre class="ascii-tree">是否為 legacy / brownfield 專案？
-├─ 是 → brownfield
-└─ 否 →
-    是否為高風險領域（醫療、金融、航空、驅動）？
-    ├─ 是 → safety-critical
-    └─ 否 →
-        是否為 MVP / POC 階段？
-        ├─ 是 → fast-iteration
-        └─ 否 →
-            嚴格 TDD 文化 + 高測試覆蓋要求？
-            ├─ 是 → test-driven
-            └─ 否 → default</pre>
+    <h3>Profile selection logic</h3>
+    <p>All 5 profiles share the <strong>same scoring criteria and grade table</strong> — only the weights differ. Pick one via this decision tree:</p>
+    <pre class="ascii-tree">Is this a legacy / brownfield project?
+├─ Yes → brownfield
+└─ No →
+    Is it high-stakes (medical, finance, aviation, drivers)?
+    ├─ Yes → safety-critical
+    └─ No →
+        MVP / POC stage?
+        ├─ Yes → fast-iteration
+        └─ No →
+            Strict TDD culture + high coverage requirement?
+            ├─ Yes → test-driven
+            └─ No → default</pre>
 
-    <h3>Default vs Brownfield 權重對照</h3>
-    <p>最常被拿來切換的兩組。其他三組的完整權重見 <a href="https://github.com/suNmerandone/claude-devkit/blob/main/skills/score-pr/rubric.md">rubric.md</a>。</p>
+    <h3>Default vs Brownfield weights</h3>
+    <p>The two most commonly swapped profiles. Full weights for the other three live in <a href="https://github.com/suNmerandone/claude-devkit/blob/main/skills/score-pr/rubric.md">rubric.md</a>.</p>
 
     <div class="comparison">
       <div class="comparison-col">
         <div class="comparison-head">
           <span class="comparison-tag">default</span>
-          <div class="comparison-note">通用平衡 · 測試完善、非 legacy</div>
+          <div class="comparison-note">Balanced · tests in place, not legacy</div>
         </div>
         <ul class="comparison-list">
-          <li><span class="dim">正確性</span><span class="weight">25%</span></li>
-          <li><span class="dim">測試覆蓋</span><span class="weight">20%</span></li>
-          <li><span class="dim">向後相容</span><span class="weight">15%</span></li>
-          <li><span class="dim">防禦性編碼</span><span class="weight">15%</span></li>
-          <li><span class="dim">可維護性</span><span class="weight">10%</span></li>
-          <li><span class="dim">變更風險</span><span class="weight">10%</span></li>
-          <li><span class="dim">程式碼品質</span><span class="weight">5%</span></li>
+          <li><span class="dim">Correctness</span><span class="weight">25%</span></li>
+          <li><span class="dim">Test coverage</span><span class="weight">20%</span></li>
+          <li><span class="dim">Backward compat</span><span class="weight">15%</span></li>
+          <li><span class="dim">Defensive coding</span><span class="weight">15%</span></li>
+          <li><span class="dim">Maintainability</span><span class="weight">10%</span></li>
+          <li><span class="dim">Change risk</span><span class="weight">10%</span></li>
+          <li><span class="dim">Code quality</span><span class="weight">5%</span></li>
         </ul>
       </div>
       <div class="comparison-col comparison-col--accent">
         <div class="comparison-head">
           <span class="comparison-tag">brownfield</span>
-          <div class="comparison-note">大型 legacy · 測試壓低、相容提高</div>
+          <div class="comparison-note">Legacy · tests down, compat up</div>
         </div>
         <ul class="comparison-list">
-          <li><span class="dim">正確性</span><span class="weight">25%</span></li>
-          <li><span class="dim">測試覆蓋</span><span class="weight">10%</span></li>
-          <li><span class="dim">向後相容</span><span class="weight up">20%</span></li>
-          <li><span class="dim">防禦性編碼</span><span class="weight">15%</span></li>
-          <li><span class="dim">可維護性</span><span class="weight">10%</span></li>
-          <li><span class="dim">變更風險</span><span class="weight up">15%</span></li>
-          <li><span class="dim">程式碼品質</span><span class="weight">5%</span></li>
+          <li><span class="dim">Correctness</span><span class="weight">25%</span></li>
+          <li><span class="dim">Test coverage</span><span class="weight">10%</span></li>
+          <li><span class="dim">Backward compat</span><span class="weight up">20%</span></li>
+          <li><span class="dim">Defensive coding</span><span class="weight">15%</span></li>
+          <li><span class="dim">Maintainability</span><span class="weight">10%</span></li>
+          <li><span class="dim">Change risk</span><span class="weight up">15%</span></li>
+          <li><span class="dim">Code quality</span><span class="weight">5%</span></li>
         </ul>
       </div>
     </div>
@@ -579,111 +580,111 @@
     <aside class="callout">
       <div class="callout-label">Note</div>
       <div class="callout-body">
-        <p>Rubric 作者誠實聲明：「這 5 組權重<strong>不是業界公認標準</strong>」。SonarQube 用 pass/fail 門檻、ISO 25010 不規定權重。建議搭配團隊校準使用 —— 選 3–5 個歷史 PR 跑評分，比對團隊感覺值，調整 profile 選擇。</p>
+        <p>The rubric author is upfront: these 5 weight sets are <strong>not industry-standard</strong>. SonarQube uses pass/fail gates; ISO 25010 doesn't prescribe weights at all. Pair this with team calibration — score 3–5 historical PRs, compare to how the team <em>feels</em> about them, adjust profile selection accordingly.</p>
       </div>
     </aside>
 
-    <h3>輸出格式解讀</h3>
-    <pre><code>  D 重新設計       C 需修正       B- 可合併*      B+ 良好       A 優秀
+    <h3>Reading the output</h3>
+    <pre><code>  D Redesign        C Fix         B- Mergeable*   B+ Good        A Excellent
   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░
                                     ▲
-                              2 項須修正，修完 → B+
+                              2 must-fix items, → B+ after fixes
 
 ──────────────────────────────────────────────────────────────────────
-必須修正
-  ! Undo/Redo Auto-width Width 不一致          → ResizableInput.cs:1518
-  ! TransformInput 缺少 null-safe 存取          → TransformInputOperation.cs:46
+Must fix
+  ! Undo/Redo Auto-width Width inconsistency    → ResizableInput.cs:1518
+  ! TransformInput missing null-safe access     → TransformInputOperation.cs:46
 
-建議修正 (修完 → B+)
-  ~ ApplyWidthModeAfterResize 加 null 防護      → ResizableInput.cs:1381
+Suggested (→ B+ after fixes)
+  ~ ApplyWidthModeAfterResize needs null guard  → ResizableInput.cs:1381
 
-可選
-  - if/else 重複賦值
+Optional
+  - if/else redundant assignment
 
-─ 評估假設 ─────────────────────────────
-  · 使用 Profile：brownfield
-  · 已讀取專案 .claude/CLAUDE.md，套用 Brownfield Rules
-  · 已讀取 .claude/skill/SKILL.md，觸及 2/11 高風險區域
-  · 無自動化測試，評估基於手動測試文件存在性
+─ Assumptions ─────────────────────────────
+  · Profile used: brownfield
+  · Project .claude/CLAUDE.md loaded, Brownfield Rules applied
+  · .claude/skill/SKILL.md loaded, 2/11 high-risk zones touched
+  · No automated tests; evaluated against manual test docs
 
-  11 檔案 | +882 -21 行 | 2/11 高風險區域</code></pre>
+  11 files | +882 -21 lines | 2/11 high-risk zones</code></pre>
 
-    <h3>三類問題符號</h3>
+    <h3>Three issue classes</h3>
     <table>
       <thead>
         <tr>
-          <th>符號</th>
-          <th>分類</th>
-          <th>對等級的影響</th>
+          <th>Symbol</th>
+          <th>Class</th>
+          <th>Effect on grade</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td><code>!</code></td>
-          <td>必須修正</td>
-          <td>不處理則不應合併；壓低至 B- 或以下</td>
+          <td>Must fix</td>
+          <td>Blocks merge; drops grade to B- or lower</td>
         </tr>
         <tr>
           <td><code>~</code></td>
-          <td>建議修正</td>
-          <td>修完可提升 1 級</td>
+          <td>Suggested</td>
+          <td>Fixing lifts grade by 1 level</td>
         </tr>
         <tr>
           <td><code>-</code></td>
-          <td>可選改善</td>
-          <td>不影響等級判定</td>
+          <td>Optional</td>
+          <td>No grade impact</td>
         </tr>
       </tbody>
     </table>
 
-    <h3>Ensemble 模式</h3>
-    <p><code>--ensemble</code> 啟動 3 個獨立 subagent 同時評估，取眾數為最終等級，標示「一致性：高 / 中」。</p>
+    <h3>Ensemble mode</h3>
+    <p><code>--ensemble</code> spins up 3 independent subagents that evaluate in parallel, takes the mode as the final grade, and labels "consistency: high / medium".</p>
     <ul>
-      <li><strong>用在</strong>：release 前審查、懷疑單次評估波動、新專案第一次建立基準</li>
-      <li><strong>代價</strong>：執行時間 3 倍、token 消耗增加</li>
-      <li><strong>日常</strong>：single mode 即可</li>
+      <li><strong>Use it when</strong>: release review, single evaluation feels unstable, establishing a baseline for a new project</li>
+      <li><strong>Cost</strong>: 3× runtime, higher token consumption</li>
+      <li><strong>Day-to-day</strong>: single mode is fine</li>
     </ul>
 
-    <h3>專案特定規則自動讀取</h3>
-    <p>若目標專案有 <code>.claude/CLAUDE.md</code>，score-pr 會自動讀取並套用以下章節作為補充 rubric：</p>
+    <h3>Project-specific rule ingestion</h3>
+    <p>If the target project has <code>.claude/CLAUDE.md</code>, score-pr auto-loads it and treats these sections as supplementary rubric:</p>
     <ul>
       <li>Coding Standards / Conventions</li>
       <li>Brownfield Rules</li>
       <li>High-Risk Zones / Legacy Surface</li>
       <li>Architecture &amp; DI</li>
     </ul>
-    <p>也會讀 <code>.claude/skill/SKILL.md</code> 識別已知高風險區域。若專案無這些檔案，會在「評估假設」區段標示跳過。</p>
+    <p>It also reads <code>.claude/skill/SKILL.md</code> to identify known high-risk zones. If either file is absent, the "Assumptions" section marks it as skipped.</p>
   </section>
 
 
   <!-- ============================ SECTION 3: PLAN-WRITER ============================ -->
   <section class="content" id="plan-writer">
-    <h2>3 · <code>/devkit:plan-writer</code> — 規劃文件合成</h2>
+    <h2>3 · <code>/devkit:plan-writer</code> — Planning Document Composer</h2>
 
-    <p>整合 Ticket / Confluence / GitHub PR / 手動描述 多方素材，合成結構化的分析/開發/規劃書。支援互動、混合、快速三種模式。</p>
+    <p>Synthesizes structured analysis / development / planning documents from multiple sources: tickets, Confluence pages, GitHub PRs, or manual descriptions. Supports interactive, hybrid, and direct modes.</p>
 
-    <h3>四種資料來源</h3>
+    <h3>Four data sources</h3>
     <table>
       <thead>
         <tr>
-          <th>來源</th>
-          <th>參數（可重複）</th>
-          <th>依賴</th>
+          <th>Source</th>
+          <th>Flag (repeatable)</th>
+          <th>Dependency</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Azure DevOps Ticket</td>
+          <td>Azure DevOps ticket</td>
           <td><code>--ticket AB#12345</code></td>
           <td>Azure DevOps MCP</td>
         </tr>
         <tr>
-          <td>Jira Ticket</td>
+          <td>Jira ticket</td>
           <td><code>--ticket PROJ-123</code></td>
-          <td>Confluence MCP（含 Jira）</td>
+          <td>Confluence MCP (includes Jira)</td>
         </tr>
         <tr>
-          <td>Confluence 頁面</td>
+          <td>Confluence page</td>
           <td><code>--confluence &lt;url-or-id&gt;</code></td>
           <td>Confluence MCP</td>
         </tr>
@@ -693,9 +694,9 @@
           <td><code>gh</code> CLI</td>
         </tr>
         <tr>
-          <td>手動描述</td>
+          <td>Manual description</td>
           <td><code>--desc "&lt;text&gt;"</code></td>
-          <td>無</td>
+          <td>None</td>
         </tr>
       </tbody>
     </table>
@@ -703,64 +704,64 @@
     <aside class="callout">
       <div class="callout-label">Design</div>
       <div class="callout-body">
-        <p>plan-writer 本身<strong>不綁定任何 MCP server</strong> —— 它借用你既有的 Claude Code 環境配置。若你沒裝某個 MCP，plan-writer 會標示該資料源不可用並繼續用其他資料合成。</p>
+        <p>plan-writer itself <strong>binds to no MCP server</strong> — it borrows whatever's already in your Claude Code environment. If a given MCP isn't installed, plan-writer flags that source as unavailable and continues synthesizing from the rest.</p>
       </div>
     </aside>
 
-    <h3>三種輸出樣板</h3>
+    <h3>Three output templates</h3>
     <table>
       <thead>
         <tr>
-          <th>樣板</th>
-          <th>結構重點</th>
-          <th>適用</th>
+          <th>Template</th>
+          <th>Structure</th>
+          <th>When to use</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td><code>generic</code></td>
           <td>Scope · Background · Requirements · Approach · Risks · Estimation</td>
-          <td>一般軟體專案</td>
+          <td>General software projects</td>
         </tr>
         <tr>
           <td><code>brownfield-plan</code></td>
-          <td>+ Document History · Brownfield Considerations · Confluence v2.1 ACs · 5.5h/day 工時換算</td>
-          <td>大型 legacy 或延續類似慣例的專案</td>
+          <td>+ Document History · Brownfield Considerations · Confluence v2.1 ACs · 5.5h/day estimation</td>
+          <td>Legacy-heavy projects or ones inheriting similar conventions</td>
         </tr>
         <tr>
           <td><code>minimal</code></td>
           <td>Goal · Approach · Estimated Effort</td>
-          <td>POC、概念驗證、輕量任務</td>
+          <td>POC, proofs-of-concept, lightweight tasks</td>
         </tr>
       </tbody>
     </table>
-    <p>也可用 <code>--template &lt;path&gt;</code> 指向任意本地 markdown 檔作為自訂樣板；專案若有 <code>.claude/plan-template.md</code>，互動模式會詢問是否使用。</p>
+    <p>You can also pass <code>--template &lt;path&gt;</code> to any local markdown file as a custom template. If the project has <code>.claude/plan-template.md</code>, interactive mode will offer to use it.</p>
 
-    <h3>三種執行模式</h3>
-    <pre><code># 互動模式 — 逐步問 5–6 題
+    <h3>Three execution modes</h3>
+    <pre><code># Interactive mode — walks through 5–6 questions
 /devkit:plan-writer
 
-# 混合模式 — 帶部分參數，缺的項目才問
+# Hybrid mode — some flags given, asks for the rest
 /devkit:plan-writer --ticket AB#12345
 
-# 快速模式 — 齊全參數、不問不吵
+# Direct mode — fully specified, silent and fast
 /devkit:plan-writer --ticket AB#12345 --template brownfield-plan \
                    --output doc/plan/MyFeature.md</code></pre>
 
-    <h3>資料不足時的行為</h3>
+    <h3>Behaviour on missing data</h3>
     <ul>
-      <li>素材不足的章節標記 <code>&lt;TBD: 具體缺什麼&gt;</code></li>
-      <li>所有 TBD 彙整到文件末的 <code>Metadata</code> 區段</li>
-      <li>絕不捏造素材中沒有的資訊</li>
-      <li>若所有資料源都失敗 → 產出樣板骨架 + 明確「需要補充的資訊」清單</li>
+      <li>Sections with insufficient material get <code>&lt;TBD: what's missing&gt;</code> markers</li>
+      <li>All TBDs get consolidated into a <code>Metadata</code> section at the end of the doc</li>
+      <li>No fabrication of content that isn't in the source material</li>
+      <li>If every source fails → produces the template skeleton plus an explicit "info needed" list</li>
     </ul>
 
-    <h3>plan-writer 不做什麼</h3>
+    <h3>What plan-writer does NOT do</h3>
     <aside class="callout">
       <div class="callout-label">Boundary</div>
       <div class="callout-body">
-        <p>這是規劃工具，不是執行工具。<strong>不</strong>自動建立 Jira subtasks、<strong>不</strong>發佈 Confluence、<strong>不</strong>改 ticket 狀態、<strong>不</strong>執行任何 git 操作（commit / push / branch 切換）。</p>
-        <p>這些都屬於領域特定 plugin 的範疇 —— 若你的團隊需要這類 workflow，應建獨立 plugin（如 <code>acme-toolkit</code>），不該混入 devkit。</p>
+        <p>This is a planning tool, not an execution tool. It <strong>does not</strong> auto-create Jira subtasks, <strong>does not</strong> publish to Confluence, <strong>does not</strong> change ticket statuses, <strong>does not</strong> run any git operations (commit, push, branch switching).</p>
+        <p>Those belong to domain-specific plugins — if your team needs such workflows, build a separate plugin (e.g. <code>acme-toolkit</code>); don't mix them into devkit.</p>
       </div>
     </aside>
   </section>
@@ -768,77 +769,77 @@
 
   <!-- ============================ SECTION 4: DESIGN PRINCIPLES ============================ -->
   <section class="content" id="principles">
-    <h2>4 · 設計原則（影響你怎麼用）</h2>
+    <h2>4 · Design Principles (these shape how you use it)</h2>
 
-    <p>這些原則不只是哲學，會實際影響你怎麼用、什麼時候該 fallback。</p>
+    <p>These aren't just philosophy — they actively shape where devkit works, where to stop using it, and what to fall back to.</p>
 
-    <h3>SKILL.md vs README.md 職責分離</h3>
-    <p><code>SKILL.md</code> 是給 Claude 讀的英文指令（AI 對英文 system prompt 反應較好、輸出語言另指定為繁中）。<code>README.md</code> 是給人讀的繁中使用者文件。兩者內容<strong>不重複</strong>、不互為註解。</p>
+    <h3>SKILL.md vs README.md — separation of concerns</h3>
+    <p><code>SKILL.md</code> holds the English instructions for Claude (the model handles English system prompts better; output language is specified separately as Traditional Chinese). <code>README.md</code> is the human-facing doc in Traditional Chinese. The two <strong>do not duplicate</strong> each other, and neither annotates the other.</p>
 
-    <h3>Progressive Disclosure</h3>
-    <p>SKILL.md 控制在 500 行內，聚焦核心工作流程。詳細規則拆到 reference 檔案（如 <code>rubric.md</code>），Claude 按需讀取。避免在主 prompt 塞入所有規則稀釋主要指令、增加 token 消耗。</p>
+    <h3>Progressive disclosure</h3>
+    <p>SKILL.md is capped at 500 lines, focused on the core workflow. Detailed rules live in reference files (like <code>rubric.md</code>), which Claude loads on demand. This avoids diluting the main instruction and bloating token usage.</p>
 
-    <h3>保持通用 · 透過讀 CLAUDE.md 注入特化</h3>
-    <p>devkit 的定位是<strong>通用工具</strong>，不硬編碼任何專案特定邏輯。需要專案特化時透過讀目標專案的 <code>.claude/CLAUDE.md</code> 注入規則（score-pr 已實作）。高度綁定特定專案的工具應放在該專案的 <code>.claude/commands/</code>，不進 devkit。</p>
+    <h3>Stay generic · inject specialization via CLAUDE.md</h3>
+    <p>devkit is positioned as a <strong>generic toolkit</strong> — no project-specific logic is hardcoded. When specialization is needed, it reads the target project's <code>.claude/CLAUDE.md</code> (already implemented in score-pr). Tooling tightly coupled to a single project belongs in that project's <code>.claude/commands/</code>, not in devkit.</p>
 
-    <h3>雙模式 + Direct-mode Hint</h3>
-    <p>每個 skill 支援互動 + 混合 + 快速三種模式。互動或混合模式結束時會在輸出末尾提示<strong>等價的 direct-mode 指令</strong>，讓使用者能「試著用一次、下次直接跳過互動」。這是刻意設計的學習曲線。</p>
+    <h3>Dual-mode + direct-mode hint</h3>
+    <p>Every skill supports interactive, hybrid, and direct modes. At the end of interactive/hybrid runs, the output appends the <strong>equivalent direct-mode command</strong> — a deliberate learning curve: "try it once interactively, skip next time".</p>
 
-    <h3>不內建領域特定整合</h3>
-    <p>devkit <strong>不提供</strong> MCP server、write-back 操作（自動建 Jira subtask 等）、專案特定 pre-commit hook 或 build wrapper。這些交給領域 plugin 或 <code>.claude/commands/</code>。</p>
+    <h3>No built-in domain integrations</h3>
+    <p>devkit <strong>does not ship</strong> MCP servers, write-back actions (e.g. auto-creating Jira subtasks), project-specific pre-commit hooks, or build wrappers. Those belong to domain plugins or project-level <code>.claude/commands/</code>.</p>
   </section>
 
 
   <!-- ============================ SECTION 5: EXTEND ============================ -->
   <section class="content" id="extend">
-    <h2>5 · 擴充與貢獻</h2>
+    <h2>5 · Extending &amp; Contributing</h2>
 
-    <h3>新增 skill 的步驟</h3>
-    <p>完整 11 步清單見 <a href="https://github.com/suNmerandone/claude-devkit/blob/main/CONVENTIONS.md">CONVENTIONS.md</a>。核心骨架：</p>
+    <h3>Adding a skill</h3>
+    <p>Full 11-step checklist in <a href="https://github.com/suNmerandone/claude-devkit/blob/main/CONVENTIONS.md">CONVENTIONS.md</a>. Core skeleton:</p>
     <ol>
-      <li>建 <code>skills/&lt;skill-name&gt;/</code> 目錄</li>
-      <li>寫 <code>SKILL.md</code>（英文指令、YAML frontmatter 含 <code>description</code>，指定輸出為繁中）</li>
-      <li>寫 <code>README.md</code>（繁中，用途 + 使用 + 選項 + 範例 + 設計原理）</li>
-      <li>若有詳細參照資料 → 拆獨立檔（如 <code>rubric.md</code>）</li>
-      <li>樣板放 <code>templates/</code>、範例放 <code>examples/</code>（推薦）</li>
-      <li>更新根 README 的「可用工具」表格 + bump <code>plugin.json</code> 的 version（新 skill 為 MINOR）</li>
+      <li>Create <code>skills/&lt;skill-name&gt;/</code></li>
+      <li>Write <code>SKILL.md</code> (English instructions, YAML frontmatter with <code>description</code>, output language set to Traditional Chinese)</li>
+      <li>Write <code>README.md</code> (Traditional Chinese — purpose + usage + options + examples + design rationale)</li>
+      <li>If detailed reference material exists → split into its own file (e.g. <code>rubric.md</code>)</li>
+      <li>Templates go in <code>templates/</code>, samples go in <code>examples/</code> (recommended)</li>
+      <li>Update the root README's "Available tools" table + bump the <code>plugin.json</code> version (new skill = MINOR)</li>
     </ol>
 
-    <h3>SemVer 三層</h3>
+    <h3>SemVer — three levels</h3>
     <table>
       <thead>
         <tr>
-          <th>層級</th>
-          <th>變更類型</th>
-          <th>範例</th>
+          <th>Level</th>
+          <th>Change type</th>
+          <th>Example</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td><strong>PATCH</strong></td>
-          <td>rubric 修正、prompt 措辭調整、文件重構</td>
-          <td>調整 score-pr rubric 權重</td>
+          <td>Rubric tweaks, prompt wording, doc restructure</td>
+          <td>Tweaking score-pr rubric weights</td>
         </tr>
         <tr>
           <td><strong>MINOR</strong></td>
-          <td>新增 skill、新增重要選項</td>
-          <td>新增 <code>/devkit:plan-writer</code></td>
+          <td>New skill, important new option</td>
+          <td>Adding <code>/devkit:plan-writer</code></td>
         </tr>
         <tr>
           <td><strong>MAJOR</strong></td>
-          <td>輸出格式或核心維度 breaking change</td>
-          <td>改變 score-pr 等級區間定義</td>
+          <td>Output format or core dimension breaking change</td>
+          <td>Changing score-pr grade thresholds</td>
         </tr>
       </tbody>
     </table>
 
-    <h3>非 Claude Code 使用者</h3>
-    <p>團隊成員用 GitHub Copilot / Cursor / ChatGPT 時，可用獨立 prompt 版本：</p>
+    <h3>Non-Claude-Code users</h3>
+    <p>For teammates using GitHub Copilot / Cursor / ChatGPT, standalone prompt versions exist:</p>
     <ul>
       <li><a href="https://github.com/suNmerandone/claude-devkit/blob/main/prompts/score-pr.md"><code>prompts/score-pr.md</code></a></li>
       <li><a href="https://github.com/suNmerandone/claude-devkit/blob/main/prompts/plan-writer.md"><code>prompts/plan-writer.md</code></a></li>
     </ul>
-    <p>使用相同的 rubric 與輸出格式，但無 ensemble、無自動資料收集、無專案 CLAUDE.md 讀取。</p>
+    <p>Same rubric, same output format — but no ensemble, no auto data collection, no project CLAUDE.md reading.</p>
   </section>
 
 
@@ -846,7 +847,7 @@
   <aside class="callout callout--accent" style="margin-top: var(--space-16);">
     <div class="callout-label">Takeaway</div>
     <div class="callout-body">
-      <p>devkit 不追求大而全，而是把 PR 評分與規劃書合成兩個高頻場景做透。三個結構性選擇值得學：<strong>SKILL.md（機器讀）與 README.md（人讀）職責分離</strong>、<strong>用 profile 承認「沒有銀彈」</strong>、<strong>用讀專案 CLAUDE.md 的機制注入特化而不硬編碼</strong>。讓一個通用 plugin 能適配多種工程文化，不需要為每個客戶派生分支。</p>
+      <p>devkit doesn't chase "big and comprehensive" — it goes deep on two high-frequency scenarios: PR scoring and planning doc composition. Three structural choices are worth learning: <strong>separation of SKILL.md (machine-read) from README.md (human-read)</strong>, <strong>using profiles to acknowledge there's no silver bullet</strong>, and <strong>injecting specialization by reading project CLAUDE.md rather than hardcoding it</strong>. A generic plugin that adapts to multiple engineering cultures, without forking a branch per customer.</p>
     </div>
   </aside>
 
@@ -855,11 +856,11 @@
 <footer>
   <div class="footer-meta" style="max-width: 920px; margin: 0 auto; padding: 0 var(--space-8);">
     <div>
-      資料來源：<a href="https://github.com/suNmerandone/claude-devkit">suNmerandone/claude-devkit</a>
+      Source: <a href="https://github.com/suNmerandone/claude-devkit">suNmerandone/claude-devkit</a>
       · v0.4.2 · MIT License
     </div>
     <div>
-      產出日期：<time datetime="2026-04-18">2026-04-18</time>
+      Published: <time datetime="2026-04-18">2026-04-18</time>
     </div>
   </div>
 </footer>
