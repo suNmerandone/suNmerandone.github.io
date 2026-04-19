@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Presentkit · Packaging an AI resume workflow as a Windows app (Technical Report)</title>
+<meta name="description" content="From Claude Code skill to BYOK desktop product — the architecture, BYOK safeguards layer, ship cadence, and a real output case study behind Presentkit v0.2.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-neutral-50:  #FAFAFA;
+    --color-neutral-100: #F4F4F5;
+    --color-neutral-200: #E4E4E7;
+    --color-neutral-300: #D4D4D8;
+    --color-neutral-400: #A1A1AA;
+    --color-neutral-500: #71717A;
+    --color-neutral-600: #52525B;
+    --color-neutral-700: #3F3F46;
+    --color-neutral-800: #27272A;
+    --color-neutral-900: #18181B;
+    --color-neutral-950: #0A0A0A;
+    --color-accent-50:  #FFF1F2;
+    --color-accent-300: #FDA4AF;
+    --color-accent-500: #FB7185;
+    --color-accent-600: #E11D48;
+    --color-accent-700: #BE123C;
+    --color-warning:    #B45309;
+    --color-info:       #1D4ED8;
+
+    --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    --shadow-sm: 0 1px 2px 0 rgba(24,24,27,0.04);
+    --shadow-md: 0 4px 8px -2px rgba(24,24,27,0.06), 0 2px 4px -2px rgba(24,24,27,0.04);
+    --shadow-lg: 0 12px 20px -4px rgba(24,24,27,0.08), 0 4px 8px -4px rgba(24,24,27,0.05);
+
+    --nav-height: 56px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-height) + 16px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-neutral-50);
+    color: var(--color-neutral-900);
+    line-height: 1.65;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    height: var(--nav-height);
+    background: rgba(250,250,250,0.85);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+  .nav-inner {
+    max-width: 1040px; margin: 0 auto; padding: 0 24px;
+    height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; color: var(--color-neutral-900); text-decoration: none; letter-spacing: -0.01em; }
+  .nav-brand-mark {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--color-accent-500), var(--color-accent-600));
+    color: white; display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  }
+  .nav-links { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-link {
+    display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; color: var(--color-neutral-600);
+    text-decoration: none; white-space: nowrap; transition: color 150ms, background 150ms;
+  }
+  .nav-link:hover { color: var(--color-accent-600); background: var(--color-accent-50); }
+
+  .container { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  .hero { padding: 96px 0 64px; }
+  .hero-eyebrow {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--color-accent-600); letter-spacing: 0.15em; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.1;
+    letter-spacing: -0.02em; margin-bottom: 18px; color: var(--color-neutral-900);
+  }
+  .hero-lead {
+    font-size: clamp(1.1rem, 1.8vw, 1.35rem); line-height: 1.5;
+    color: var(--color-neutral-600); max-width: 680px; margin-bottom: 32px;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 12px 24px;
+    font-family: var(--font-mono); font-size: 13px; color: var(--color-neutral-500);
+  }
+  .hero-meta > * { display: inline-flex; align-items: center; gap: 6px; }
+  .hero-meta .tag {
+    background: var(--color-accent-50); color: var(--color-accent-700);
+    padding: 3px 10px; border-radius: 100px; font-weight: 600;
+  }
+  .hero-meta a { color: var(--color-accent-600); text-decoration: none; font-weight: 500; }
+  .hero-meta a:hover { text-decoration: underline; }
+
+  .kpi-section { padding: 24px 0 64px; }
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  }
+  @media (max-width: 860px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
+  .kpi-card {
+    background: white; border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);
+    transition: box-shadow 200ms, transform 200ms;
+  }
+  .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .kpi-value {
+    font-size: 44px; font-weight: 800; line-height: 1;
+    letter-spacing: -0.03em; color: var(--color-neutral-900);
+  }
+  .kpi-value .unit { font-family: var(--font-mono); font-size: 14px; color: var(--color-accent-600); margin-left: 6px; font-weight: 600; letter-spacing: 0.02em; }
+  .kpi-triple { font-size: 28px; letter-spacing: -0.02em; }
+  .kpi-triple .sep { color: var(--color-neutral-300); margin: 0 6px; font-weight: 400; }
+  .kpi-label { font-size: 13px; color: var(--color-neutral-600); margin-top: 14px; line-height: 1.45; }
+
+  section.body-section { padding: 56px 0; border-top: 1px solid var(--color-neutral-200); }
+  .section-eyebrow {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--color-accent-600); letter-spacing: 0.15em; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .body-section h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem); font-weight: 700; line-height: 1.2;
+    letter-spacing: -0.01em; margin-bottom: 16px; color: var(--color-neutral-900);
+  }
+  .body-section h3 {
+    font-size: 18px; font-weight: 600; margin: 28px 0 10px;
+    color: var(--color-neutral-900); letter-spacing: -0.005em;
+  }
+  .body-section p { margin-bottom: 14px; color: var(--color-neutral-700); }
+  .body-section p.lead { font-size: 17px; color: var(--color-neutral-700); margin-bottom: 20px; }
+  .body-section strong { font-weight: 600; color: var(--color-neutral-900); }
+  .body-section a { color: var(--color-accent-600); font-weight: 500; text-decoration: none; }
+  .body-section a:hover { text-decoration: underline; }
+  .body-section code { font-family: var(--font-mono); font-size: 13px; background: var(--color-neutral-100); padding: 1px 6px; border-radius: 3px; color: var(--color-accent-700); }
+  .body-section ul { padding-left: 22px; margin: 10px 0 18px; }
+  .body-section li { margin: 6px 0; color: var(--color-neutral-700); }
+
+  .callout {
+    background: var(--color-accent-50);
+    border-left: 3px solid var(--color-accent-500);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px; margin: 24px 0;
+    color: var(--color-neutral-800); font-size: 15px;
+  }
+  .callout strong { color: var(--color-accent-700); }
+  .callout.muted { background: var(--color-neutral-100); border-left-color: var(--color-neutral-400); }
+  .callout.muted strong { color: var(--color-neutral-900); }
+
+  .data-table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    background: white; border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-md); overflow: hidden;
+    font-size: 14px; margin: 20px 0;
+  }
+  .data-table thead th {
+    background: var(--color-neutral-900); color: white;
+    padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .data-table tbody td {
+    padding: 12px 16px; border-bottom: 1px solid var(--color-neutral-100);
+    vertical-align: top; color: var(--color-neutral-700);
+  }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:hover { background: var(--color-neutral-50); }
+  .data-table .accent-cell { color: var(--color-accent-600); font-weight: 600; font-family: var(--font-mono); font-size: 13px; }
+
+  /* <div class="code"> content has real `\n` newlines — without `white-space`
+     HTML collapses them into single spaces. See external-anti-patterns §6. */
+  .code {
+    background: var(--color-neutral-900); color: var(--color-neutral-100);
+    border-radius: var(--radius-md); padding: 16px 18px;
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.65;
+    white-space: pre-wrap; word-break: break-word;
+    overflow-x: auto; margin: 20px 0;
+  }
+  .code .comment { color: var(--color-neutral-500); }
+  .code .key { color: var(--color-accent-300); }
+  .code .file { color: var(--color-neutral-400); font-size: 12px; margin-bottom: 8px; display: block; letter-spacing: 0.03em; }
+
+  .decision-list { display: grid; gap: 10px; margin: 20px 0; }
+  .decision-row {
+    display: grid; grid-template-columns: 180px 1fr; gap: 18px;
+    padding: 14px 18px; background: white;
+    border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md);
+  }
+  .decision-key {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--color-accent-600); letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .decision-val { color: var(--color-neutral-700); font-size: 14px; line-height: 1.55; }
+  @media (max-width: 640px) {
+    .decision-row { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  .diagram-wrap {
+    background: white; border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-md); padding: 20px;
+    margin: 24px 0;
+  }
+  .diagram-wrap svg { width: 100%; height: auto; display: block; }
+  .diagram-caption {
+    font-family: var(--font-mono); font-size: 12px; color: var(--color-neutral-500);
+    text-align: center; margin-top: 10px; letter-spacing: 0.03em;
+  }
+
+  .output-showcase {
+    display: grid; grid-template-columns: 5fr 4fr; gap: 32px;
+    align-items: start; margin: 24px 0;
+  }
+  @media (max-width: 720px) { .output-showcase { grid-template-columns: 1fr; } }
+  .output-image {
+    border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md);
+    overflow: hidden; box-shadow: var(--shadow-md); background: white;
+  }
+  .output-image img { width: 100%; height: auto; display: block; }
+  .output-meta dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin-bottom: 20px; }
+  .output-meta dt { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--color-neutral-500); letter-spacing: 0.08em; text-transform: uppercase; padding-top: 4px; }
+  .output-meta dd { color: var(--color-neutral-800); font-size: 14px; }
+  .output-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--color-neutral-900); color: white;
+    padding: 12px 20px; border-radius: var(--radius-md);
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    transition: background 150ms;
+  }
+  .output-cta:hover { background: var(--color-accent-600); }
+  .output-cta .arrow { font-family: var(--font-mono); transition: transform 150ms; }
+  .output-cta:hover .arrow { transform: translateX(3px); }
+
+  .takeaway-section { background: var(--color-neutral-900); color: var(--color-neutral-100); }
+  .takeaway-section h2 { color: white; }
+  .takeaway-section p { color: var(--color-neutral-300); }
+  .takeaway-section .section-eyebrow { color: var(--color-accent-500); }
+  .takeaway-list { display: grid; gap: 14px; margin: 24px 0; }
+  .takeaway-item {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-md);
+  }
+  .takeaway-item strong { color: var(--color-accent-500); font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
+  .takeaway-item p { margin: 0; color: var(--color-neutral-300); font-size: 15px; }
+
+  footer.page-footer {
+    background: var(--color-neutral-950); color: var(--color-neutral-400);
+    padding: 40px 0; font-family: var(--font-mono); font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+  footer.page-footer .container { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; align-items: center; }
+  footer.page-footer a { color: var(--color-accent-500); text-decoration: none; }
+  footer.page-footer a:hover { text-decoration: underline; }
+
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 100px;
+    background: var(--color-neutral-100); color: var(--color-neutral-700);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .pill--accent { background: var(--color-accent-50); color: var(--color-accent-700); }
+  .pill--warn { background: #FEF3C7; color: var(--color-warning); }
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="Contents">
+  <div class="nav-inner">
+    <a class="nav-brand" href="#top">
+      <span class="nav-brand-mark">P</span>
+      Presentkit · Technical Report
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="#problem">Problem</a>
+      <a class="nav-link" href="#architecture">Architecture</a>
+      <a class="nav-link" href="#byok">BYOK</a>
+      <a class="nav-link" href="#anchor">Anchor</a>
+      <a class="nav-link" href="#cadence">Cadence</a>
+      <a class="nav-link" href="#output">Output</a>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <header class="hero">
+    <div class="container">
+      <div class="hero-eyebrow">Technical Report · 2026-04-19</div>
+      <h1>Packaging an AI resume workflow as a Windows app</h1>
+      <p class="hero-lead">
+        Presentkit turns a Claude Code skill workflow into a BYOK desktop product — "open app → fill wizard → get an HTML resume". From a Phase-0 empty Mica window to the v0.2 tag, this report unpacks the architecture decisions, the BYOK safeguards layer, the Anchor/iteration machinery, and a real, clickable output.
+      </p>
+      <div class="hero-meta">
+        <span class="tag">v0.2.0 · tagged</span>
+        <span>Windows 10/11 · .NET 10 · WinUI 3</span>
+        <span>MIT · private repo</span>
+        <span>Source: <a href="https://github.com/suNmerandone/presentkit" target="_blank" rel="noopener">github.com/suNmerandone/presentkit</a></span>
+      </div>
+    </div>
+  </header>
+
+  <section class="kpi-section">
+    <div class="container">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-value">8<span class="unit">steps</span></div>
+          <div class="kpi-label">Design → LinkedIn → Intake → Materials → Anchor → Outline → Generate → Done</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">7<span class="unit">safeguards</span></div>
+          <div class="kpi-label">Mode badge · pre-flight confirm · token estimate · audit log · rate-limit pacing · stale-pref protection · 429 retry</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">103<span class="unit">MB ZIP</span></div>
+          <div class="kpi-label">Self-contained · no .NET runtime install · no admin rights · double-click to run</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value kpi-triple">
+            0<span class="sep">·</span>0<span class="sep">·</span>0
+          </div>
+          <div class="kpi-label"><strong style="color:var(--color-neutral-900);">0 installer · 0 admin · 0 CDN</strong><br>Local-first; zero external CDN calls from generated HTML</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="problem" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">01 · Problem &amp; Brand position</div>
+      <h2>From "you need Claude Code" to "double-click the exe"</h2>
+
+      <p class="lead">
+        <code>claude-present</code> already has a battle-tested bilingual resume skill — <code>resume-profile</code>. The problem is you have to cross three thresholds to use it: install the Claude Code CLI, understand the <code>.claude/skills/</code> layout, and hand-edit Markdown. That's three barriers for a non-developer, and mild friction even for a developer.
+      </p>
+
+      <h3>Three frictions</h3>
+      <div class="decision-list">
+        <div class="decision-row">
+          <div class="decision-key">Friction 1 · CLI</div>
+          <div class="decision-val">User must install Node, install Claude Code, and sign in (or bind a MAX subscription) before firing the first command.</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Friction 2 · Skill structure</div>
+          <div class="decision-val">Need to know where SKILL.md lives, which references file changes what output, what the output folder layout looks like.</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Friction 3 · Markdown editing</div>
+          <div class="decision-val">Intake data comes in by hand-writing or pasting Markdown — by editing files. No form, no validation, no bilingual toggle button.</div>
+        </div>
+      </div>
+
+      <h3>Presentkit's answer — not a prompt wrapper, a product</h3>
+      <p>
+        Plenty of "AI resume tools" on the web are a form that forwards a prompt to GPT/Claude; what the user takes on is a behavioural trust leap ("will it store my resume?"). Presentkit goes the other way: <strong>a BYOK (bring your own key) desktop app</strong> that hands both cost and control back to the user.
+      </p>
+      <div class="callout">
+        <strong>Brand position · spending trust as a feature</strong>: other tools treat BYOK as a "technical option"; Presentkit treats it as the product's substance — mode badge, pre-flight dialog, audit log all exist to answer "you always know what you're about to spend and why."
+      </div>
+    </div>
+  </section>
+
+  <section id="architecture" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">02 · Architecture at a glance</div>
+      <h2>Five projects · one data flow</h2>
+
+      <p class="lead">
+        A WinUI 3 unpackaged desktop app, split into 5 .NET projects. The rule is strict: <strong><code>Presentkit.Core</code> cannot touch I/O</strong>; it holds pure data records and design presets only. All file / DPAPI / network code sinks into its own project. This lets Core run under pure unit tests and lets the UI be replaced without touching the domain model.
+      </p>
+
+      <h3>Project boundaries</h3>
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="arch-title arch-desc">
+          <title id="arch-title">Presentkit 5-project architecture</title>
+          <desc id="arch-desc">Presentkit.App depends on Core / Claude / Pdf / Secrets; Core is the IO-free domain model; each of the other projects owns its own IO concern.</desc>
+          <style>
+            .box { fill: white; stroke: #E4E4E7; stroke-width: 1.5; rx: 8; }
+            .box-ui { fill: #FFF1F2; stroke: #FDA4AF; }
+            .box-core { fill: #F4F4F5; stroke: #A1A1AA; }
+            .box-io { fill: white; }
+            .title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 14px; fill: #18181B; }
+            .sub { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 10px; fill: #52525B; letter-spacing: 0.02em; }
+            .role { font-family: 'Inter', sans-serif; font-size: 11px; fill: #52525B; }
+            .role-accent { fill: #E11D48; font-weight: 600; }
+            .arrow { stroke: #A1A1AA; stroke-width: 1.2; fill: none; }
+          </style>
+
+          <rect class="box box-ui" x="260" y="20" width="200" height="70" rx="8"/>
+          <text class="title" x="360" y="46" text-anchor="middle">Presentkit.App</text>
+          <text class="sub" x="360" y="62" text-anchor="middle">WinUI 3 · views · view-models</text>
+          <text class="role role-accent" x="360" y="78" text-anchor="middle">consumer of everything below</text>
+
+          <path class="arrow" d="M330 90 L140 150" marker-end="url(#arrowhead)"/>
+          <path class="arrow" d="M350 90 L275 150" marker-end="url(#arrowhead)"/>
+          <path class="arrow" d="M380 90 L455 150" marker-end="url(#arrowhead)"/>
+          <path class="arrow" d="M400 90 L590 150" marker-end="url(#arrowhead)"/>
+
+          <rect class="box box-io" x="40" y="150" width="200" height="80"/>
+          <text class="title" x="140" y="178" text-anchor="middle">Presentkit.Claude</text>
+          <text class="sub" x="140" y="195" text-anchor="middle">Anthropic SDK wrapper</text>
+          <text class="role" x="140" y="212" text-anchor="middle">+ MockClaudeClient</text>
+          <text class="role" x="140" y="225" text-anchor="middle">+ ClaudeClientFactory</text>
+
+          <rect class="box box-io" x="260" y="150" width="140" height="80"/>
+          <text class="title" x="330" y="178" text-anchor="middle">Presentkit.Pdf</text>
+          <text class="sub" x="330" y="195" text-anchor="middle">PdfPig text extraction</text>
+          <text class="role" x="330" y="212" text-anchor="middle">+ LinkedIn parser</text>
+
+          <rect class="box box-io" x="420" y="150" width="140" height="80"/>
+          <text class="title" x="490" y="178" text-anchor="middle">Presentkit.Secrets</text>
+          <text class="sub" x="490" y="195" text-anchor="middle">DPAPI · prefs · draft</text>
+          <text class="role" x="490" y="212" text-anchor="middle">local files only</text>
+
+          <rect class="box box-core" x="580" y="150" width="110" height="80"/>
+          <text class="title" x="635" y="178" text-anchor="middle">Presentkit.Core</text>
+          <text class="sub" x="635" y="195" text-anchor="middle">ResumeIntake</text>
+          <text class="role role-accent" x="635" y="212" text-anchor="middle">IO-free domain</text>
+
+          <line x1="40" y1="265" x2="690" y2="265" stroke="#E4E4E7" stroke-width="1" stroke-dasharray="3,3"/>
+          <text class="role" x="365" y="290" text-anchor="middle">Core has no dependency on the other four — it's referenced, never referencing back</text>
+          <text class="role" x="365" y="308" text-anchor="middle">This rule lets Core stay unit-testable, and lets the UI be swapped without touching the domain</text>
+
+          <defs>
+            <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#A1A1AA"/>
+            </marker>
+          </defs>
+        </svg>
+        <div class="diagram-caption">Figure 1 · Project dependency — App consumes 4 libraries; Core stays at the bottom, IO-free</div>
+      </div>
+
+      <h3>Data flow · what one Generate run does</h3>
+      <div class="code">
+<span class="file">GenerateViewModel.RunAsync()</span><span class="comment"># single-language path</span>
+WizardVMs → <span class="key">ResumeIntake</span> record
+          → <span class="key">PromptAssembler.Build</span>(intake, design, linkedInText, targetLanguage)
+          → <span class="key">IClaudeClient.StreamMessageAsync</span>      <span class="comment"># mock OR real by factory</span>
+          → <span class="key">StreamDelta</span> accumulated into StringBuilder
+          → <span class="key">ResumeOrchestrator.BuildArtifact</span>       <span class="comment"># wrap HTML skeleton</span>
+          → <span class="key">ResumeFileWriter.Write</span>                 <span class="comment"># 4-file set</span>
+          → auto-advance wizard → Step 8 (Done)
+
+<span class="comment"># Bilingual mode loops twice with distinct LanguageDirective</span>
+<span class="comment"># When needed, inserts a silent pause between calls (only if &gt; 25K estimated tokens)</span></div>
+
+      <h3>Five key technical decisions</h3>
+      <div class="decision-list">
+        <div class="decision-row">
+          <div class="decision-key">MVVM · partial-prop</div>
+          <div class="decision-val">Every VM uses <code>public partial string X { get; set; }</code> with <code>[ObservableProperty]</code>. Field-based form emits MVVMTK0045 (not AOT-safe for WinRT marshalling) — the repo rule is zero warnings.</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">BYOK · DPAPI</div>
+          <div class="decision-val">API key stored at <code>%LOCALAPPDATA%\Presentkit\secrets\anthropic-api-key.bin</code>, encrypted with Windows DPAPI CurrentUser scope. No admin rights required; the key becomes invalid if the user migrates machines (deliberately).</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">PDF · PdfPig</div>
+          <div class="decision-val">LinkedIn PDF text extraction uses <code>PdfPig</code> (MIT), avoiding iTextSharp's AGPL contagion. <code>ContentOrderTextExtractor</code> preserves column / paragraph structure, which keeps the LinkedIn regex parser happy.</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Deploy · self-contained</div>
+          <div class="decision-val">Unpackaged WinUI3 + <code>PublishReadyToRun</code> + <code>WindowsAppSDKSelfContained</code>. Yields a 103 MB ZIP with no .NET runtime install, no MSIX cert, no admin rights.</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Mock · airtight</div>
+          <div class="decision-val">Only <code>ClaudeClientFactory.Create(apiKey, useMock)</code> ever returns a real client. Any call path that bypasses it breaks the offline toggle — so CLAUDE.md lists it as a hard prohibition.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="byok" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">03 · BYOK safeguards layer</div>
+      <h2>Seven guardrails · turning trust into product</h2>
+
+      <p class="lead">
+        The moment the user presses Generate, real money comes off their API key. <strong>Every guardrail is designed around "the user always knows what they're about to spend and why"</strong>. This isn't compliance checkbox stuff; it's the product's substance.
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 30%;">Safeguard</th>
+            <th style="width: 52%;">What it does</th>
+            <th style="width: 18%;">Where</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Mode badge</strong><br><span class="pill pill--accent">LIVE</span> <span class="pill">OFFLINE</span> <span class="pill">NO KEY</span></td>
+            <td>A coloured pill sits beside the wordmark at all times. LIVE is amber (a heads-up, not a red alarm), OFFLINE is slate, NO KEY is zinc. Auto-refreshes when the Settings dialog closes.</td>
+            <td><code>MainWindow.<br>RefreshModeBadge()</code></td>
+          </tr>
+          <tr>
+            <td><strong>Pre-flight confirm</strong></td>
+            <td>Before Generate actually fires, a dialog shows the model, estimated cost range, token estimate, and rate-limit risk. <strong>Cancel is the default button</strong> — the user must explicitly click "Generate (spend tokens)" to proceed. Skipped entirely in mock mode.</td>
+            <td><code>GenerateView.<br>GenerateButton_Click</code></td>
+          </tr>
+          <tr>
+            <td><strong>Token estimate alert</strong></td>
+            <td>InfoBar on the Generate step in three tiers: <code>&lt; 20K</code> green, <code>20K–28K</code> amber, <code>≥ 28K</code> red with actionable trim guidance ("remove Anchor / trim Materials / skip LinkedIn").</td>
+            <td><code>PromptAssembler.<br>EstimateInputTokens</code></td>
+          </tr>
+          <tr>
+            <td><strong>API call audit log</strong></td>
+            <td>Every real Anthropic call (stream / ping / ping-failed) writes a tab-separated line to <code>%LOCALAPPDATA%\Presentkit\api-calls.log</code>. <strong>Mock calls don't write</strong>. Users reconcile this against Anthropic Console billing.</td>
+            <td><code>ApiCallAuditLog<br>.Record</code></td>
+          </tr>
+          <tr>
+            <td><strong>Stale-pref protection</strong></td>
+            <td>Every real-API path <strong>re-reads prefs from disk first</strong>. An early version cached them — and when the user flipped OFFLINE in Settings, Generate still silently hit the real API. This guardrail kills that class of regression.</td>
+            <td><code>GenerateViewModel.<br>RunAsync</code></td>
+          </tr>
+          <tr>
+            <td><strong>Rate-limit pacing</strong></td>
+            <td>For bilingual with a heavy prompt, if <code>2 × per-call &gt; 25K</code>, a silent 60 s pause is inserted between the two calls. The user sees "Processing..." — the rate-limit mechanism is never leaked to the UI.</td>
+            <td><code>GenerateViewModel.<br>BilingualPause</code></td>
+          </tr>
+          <tr>
+            <td><strong>429 retry</strong></td>
+            <td>On Anthropic's <code>rate_limit_error</code>, auto-retries once after 60 s. Only a second failure surfaces to the Status line.</td>
+            <td><code>AnthropicClaude<br>Client</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>Why this shape</strong>: trust in an LLM product doesn't come from "the model is accurate" — it comes from the user being able to <strong>predict</strong> what will happen when they click. Pre-flight dialog + audit log, taken together, make "did I just spend 5 cents correctly?" a question the user can self-verify in under 10 seconds.
+      </div>
+    </div>
+  </section>
+
+  <section id="anchor" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">04 · Anchor &amp; iteration mode</div>
+      <h2>From "make a new resume" to "update the old one"</h2>
+
+      <p class="lead">
+        Real-world resume usage is rarely a from-scratch run. It's usually: last run was fine but I need to add a new project, change the headline, drop an old role. The Anchor step exists for this: drop in a prior Presentkit output, pick a mode.
+      </p>
+
+      <h3>Two modes</h3>
+      <div class="decision-list">
+        <div class="decision-row">
+          <div class="decision-key">Mirror style</div>
+          <div class="decision-val">Use the prior resume's voice / structure / density as a style reference, but <strong>regenerate content from the current Intake</strong>. Use when "last time's tone was right, but the job target / content has moved on".</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Iterate (diff mode)</div>
+          <div class="decision-val">Treat the prior resume as the <strong>content baseline</strong>, applying only the changes you typed into the Change Request box. Produces a new version plus a machine-readable changelog. Use for "add this project / remove this role / change my headline".</div>
+        </div>
+      </div>
+
+      <h3>Iteration yields a machine-readable changelog</h3>
+      <p>
+        The iterate-mode system prompt explicitly requires Claude to emit an <code>&lt;!-- CHANGES --&gt;</code> comment block at the top of its HTML body. The orchestrator slices it out and lifts it into <code>generation.log.md</code>. Result: "what changed" is discoverable without opening the HTML.
+      </p>
+      <div class="code">
+<span class="file">generation.log.md · ## Claude-reported changes</span>
+- <span class="key">ADDED</span>: Experience section gains "2026-Q2 LLM integration project"
+  - bullet: Built internal LLM routing layer handling 200k req/day
+  - bullet: Reduced model cost by 34% via intelligent caching
+- <span class="key">MODIFIED</span>: Hero tagline changed from "Backend engineer" to "Backend + AI infra engineer"
+- <span class="key">REMOVED</span>: 2021 internship entry (older than 5 years, off-target for current role)
+- <span class="key">UNCHANGED</span>: Education / Skills sections</div>
+
+      <h3>Recursive bloat guard</h3>
+      <p>
+        The first iterate run serializes Intake + Anchor into <code>source-notes.md</code>. A naïve implementation would dump the whole prior Anchor into the Intake snapshot — and the next iterate would dump <em>that</em> source-notes again — and the one after is N². The orchestrator's <code>CompactAnchorForArtifact</code> swaps the nested anchor's heavy fields (resume.html / source-notes / generation.log) for a one-line "see prior folder" reference, <strong>breaking the exponential recursion</strong>.
+      </p>
+      <div class="callout muted">
+        <strong>Technical note</strong>: this bug was real — early versions hit 40K+ input tokens at the third iterate, over the 30K/min starter-tier cap. The fix also trimmed the iteration system prompt by ~68%, removing repeated context.
+      </div>
+    </div>
+  </section>
+
+  <section id="cadence" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">05 · Ship-it cadence</div>
+      <h2>Phase 0 → v0.2 rhythm</h2>
+
+      <p class="lead">
+        From the first empty Mica window to tagging v0.2.0, a few traps got crossed. This section isn't a changelog — it's the short list of mines worth warning the next person about.
+      </p>
+
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tl-title tl-desc">
+          <title id="tl-title">Presentkit Phase 0 → v0.2 timeline</title>
+          <desc id="tl-desc">From the empty skeleton to the v0.2 tag, eight milestones — four of them are traps actually encountered and fixed.</desc>
+          <line x1="40" y1="100" x2="720" y2="100" stroke="#E4E4E7" stroke-width="2"/>
+          <g font-family="JetBrains Mono, monospace" font-size="11" fill="#52525B">
+            <circle cx="60" cy="100" r="6" fill="#A1A1AA"/>
+            <text x="60" y="130" text-anchor="middle" font-weight="600" fill="#3F3F46">Phase 0</text>
+            <text x="60" y="148" text-anchor="middle" font-size="10">Mica window</text>
+
+            <circle cx="150" cy="100" r="6" fill="#A1A1AA"/>
+            <text x="150" y="72" text-anchor="middle" font-weight="600" fill="#3F3F46">Phase 1</text>
+            <text x="150" y="88" text-anchor="middle" font-size="10">round-trip + offline</text>
+
+            <circle cx="240" cy="100" r="7" fill="#FB7185"/>
+            <text x="240" y="130" text-anchor="middle" font-weight="700" fill="#E11D48">Phase 2 ⚠</text>
+            <text x="240" y="148" text-anchor="middle" font-size="10" fill="#E11D48">MVVMTK0045</text>
+
+            <circle cx="330" cy="100" r="6" fill="#A1A1AA"/>
+            <text x="330" y="72" text-anchor="middle" font-weight="600" fill="#3F3F46">Phase 3</text>
+            <text x="330" y="88" text-anchor="middle" font-size="10">end-to-end pipeline</text>
+
+            <circle cx="420" cy="100" r="7" fill="#FB7185"/>
+            <text x="420" y="130" text-anchor="middle" font-weight="700" fill="#E11D48">Phase 4-5 ⚠</text>
+            <text x="420" y="148" text-anchor="middle" font-size="10" fill="#E11D48">DataTemplate click</text>
+
+            <circle cx="510" cy="100" r="7" fill="#FB7185"/>
+            <text x="510" y="72" text-anchor="middle" font-weight="700" fill="#E11D48">Phase 6 ⚠</text>
+            <text x="510" y="88" text-anchor="middle" font-size="10" fill="#E11D48">publish PRI missing</text>
+
+            <circle cx="600" cy="100" r="7" fill="#FB7185"/>
+            <text x="600" y="130" text-anchor="middle" font-weight="700" fill="#E11D48">v0.2 ⚠</text>
+            <text x="600" y="148" text-anchor="middle" font-size="10" fill="#E11D48">language fidelity</text>
+
+            <circle cx="700" cy="100" r="9" fill="#E11D48" stroke="#FFF1F2" stroke-width="3"/>
+            <text x="700" y="72" text-anchor="middle" font-weight="700" fill="#E11D48">v0.2.0</text>
+            <text x="700" y="88" text-anchor="middle" font-size="10" fill="#E11D48">tagged · released</text>
+          </g>
+        </svg>
+        <div class="diagram-caption">Figure 2 · Coral nodes are actual traps hit and fixed (not release milestones)</div>
+      </div>
+
+      <h3>Trap 1 · <code>[ObservableProperty]</code> on fields emits MVVMTK0045</h3>
+      <p>
+        MVVM Toolkit 8.4+ on WinUI 3 / WinRT emits <code>MVVMTK0045</code> for field-based <code>[ObservableProperty]</code> — CsWinRT marshalling isn't AOT-safe. <strong>Fix: switch to partial-property form.</strong> Repo rule: zero-warning builds.
+      </p>
+
+      <h3>Trap 2 · <code>Click="Handler"</code> inside a DataTemplate doesn't reach the outer UserControl</h3>
+      <p>
+        Once a <code>DataTemplate</code> carries <code>x:DataType</code> (required for compile-time <code>x:Bind</code>), a <code>Click="Handler"</code> inside looks for the handler on the <em>item type</em> (e.g. <code>JobExperienceViewModel</code>), not the outer UserControl. <strong>Fix: expose a <code>RemoveCommand</code> on the item, wire it via <code>x:Bind</code></strong>.
+      </p>
+
+      <h3>Trap 3 · <code>dotnet publish</code> doesn't copy <code>Presentkit.App.pri</code></h3>
+      <p>
+        Unpackaged WinUI 3's <code>dotnet publish</code> doesn't copy the app-level PRI file from <code>bin/Release/.../win-x64/</code> into the publish directory. <strong>Symptom: double-clicking the unzipped exe silently crashes, no window.</strong> Fix: <code>scripts/publish.ps1</code> force-copies the PRI after <code>dotnet publish</code> before zipping.
+      </p>
+
+      <h3>Trap 4 · Language fidelity drift</h3>
+      <p>
+        LinkedIn PDFs are usually English; Intake is usually Traditional Chinese. Without explicit steering, Claude follows the dominant input language — so picking "Chinese" could yield English output. <strong>Fix: three-way reinforcement</strong> — put <code>## Target output language</code> at the very top of the user message, add a CRITICAL block to the system prompt, and reinforce at the user message's tail.
+      </p>
+
+      <div class="callout muted">
+        <strong>Other traps not getting their own heading</strong>: Claude occasionally wraps HTML in <code>```html ... ```</code> markdown code fences (fixed with a system-prompt prohibition + defensive sanitizer); Mirror-anchor mode sometimes copies the anchor's <code>&lt;footer&gt;</code> into Claude's body, producing two footers in the output (fixed with <code>StripTrailingFooter</code>); the recursive-bloat case already covered above.
+      </div>
+    </div>
+  </section>
+
+  <section id="output" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">06 · Real output</div>
+      <h2>A real v0.2 run</h2>
+
+      <p class="lead">
+        What does Presentkit v0.2 actually produce? Below is the live result: a resume for Kenneth Chen, using the <strong>Minimalist Mono</strong> preset (one of three built-ins), with output language set to Both (one ZH file, one EN), using the previous run as a style anchor.
+      </p>
+
+      <div class="output-showcase">
+        <div>
+          <div class="output-image">
+            <img src="assets/resume-en-hero.png" alt="Kenneth Chen's Presentkit-generated resume screenshot, Minimalist Mono preset, all-black monospace styling" />
+          </div>
+        </div>
+        <div class="output-meta">
+          <dl>
+            <dt>Preset</dt><dd>Minimalist Mono (<code>#18181B</code> pure black · IBM Plex Mono throughout)</dd>
+            <dt>Language</dt><dd>Both · one ZH file, one EN</dd>
+            <dt>Anchor</dt><dd>Used the previous run as style mirror</dd>
+            <dt>Body</dt><dd>25,066 chars</dd>
+            <dt>Files</dt><dd><code>resume.html</code> · <code>resume.en.html</code> · <code>source-notes.md</code> · <code>generation.log.md</code></dd>
+            <dt>Model</dt><dd><code>claude-sonnet-4-6</code></dd>
+            <dt>Date</dt><dd>2026-04-19</dd>
+          </dl>
+          <a class="output-cta" href="../../../resume/Presentkit_v0.2.0_2026-04-19/resume.en.html" target="_blank" rel="noopener">
+            <span>View actual output</span>
+            <span class="arrow">→</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Why this sample matters</strong>: it's not lorem ipsum. It's a real resume built by running Presentkit against an actual career history (ViewSonic / Delta / Micron), printable via Ctrl+P, ready to attach to an email. The footer bears a <code>Generated with Presentkit v0.2.0</code> watermark linking back to GitHub — there by default, not bolted on.
+      </div>
+    </div>
+  </section>
+
+  <section class="body-section takeaway-section">
+    <div class="container">
+      <div class="section-eyebrow">Closing</div>
+      <h2>Three takeaways worth carrying</h2>
+
+      <div class="takeaway-list">
+        <div class="takeaway-item">
+          <strong>01 · Packaging an AI tool = letting the user predict the cost</strong>
+          <p>However good the tech, a BYOK product's first decisive fight is: can the user <em>predict</em> what pressing Generate will do? Mode badge, pre-flight, audit log together aren't compliance; they're the product.</p>
+        </div>
+        <div class="takeaway-item">
+          <strong>02 · A null-value KPI is still a KPI</strong>
+          <p>"0 installer · 0 admin · 0 CDN" — a KPI for what you <em>don't</em> do — signals trust louder than a feature count. Local-first isn't a slogan; it's a measurable promise.</p>
+        </div>
+        <div class="takeaway-item">
+          <strong>03 · Treat iteration as a first-class citizen</strong>
+          <p>A resume isn't a one-shot artefact — it's an accumulation of versions. Anchor + <code>&lt;!-- CHANGES --&gt;</code> make "update an old one" as natural as "generate a new one". The system acknowledges, from day one, that humans don't get it right in one pass.</p>
+        </div>
+      </div>
+
+      <h3 style="color: white; margin-top: 32px;">v0.2.1 / v0.3 candidates (ordering not committed)</h3>
+      <ul>
+        <li style="color: var(--color-neutral-300);">Extend draft persistence to Materials / Anchor / iteration fields (v0.2 only persists Intake + Design)</li>
+        <li style="color: var(--color-neutral-300);">Have the Outline step preview Materials / Anchor / change request, not only Intake</li>
+        <li style="color: var(--color-neutral-300);">Thread Anthropic's <code>usage</code> field through to <code>generation.log.md</code> (currently rough char-count only)</li>
+        <li style="color: var(--color-neutral-300);">Move the <code>Presentkit.App.pri</code> copy into an MSBuild target so plain <code>dotnet publish</code> also produces a runnable ZIP</li>
+        <li style="color: var(--color-neutral-300);">Code signing + ARM64 builds — prioritise based on actual user-base growth</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="page-footer">
+  <div class="container">
+    <span>Presentkit · Technical Report · 2026-04-19</span>
+    <span>Source: <a href="https://github.com/suNmerandone/presentkit" target="_blank" rel="noopener">github.com/suNmerandone/presentkit</a> · v0.2.0</span>
+    <span>Generated with claude-present · <code>technical-report</code> skill</span>
+  </div>
+</footer>
+
+</body>
+</html>
