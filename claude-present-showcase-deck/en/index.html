@@ -114,7 +114,7 @@
     .slide--case h3.case-phase { color: var(--color-accent-600); font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); text-transform: uppercase; letter-spacing: 0.1em; margin: 0.8rem 0 0.3rem 0; }
     .slide--case p.case-body { margin: 0.2rem 0 0.6rem 0; }
 
-    .code-block { background: var(--color-neutral-900); color: var(--color-neutral-200); padding: 1rem 1.3rem; border-radius: 6px; font-family: var(--font-mono); font-size: clamp(0.75rem, 1.05vw, 0.95rem); line-height: 1.55; margin: 0.8rem 0; overflow: hidden; border-left: 4px solid var(--color-accent-500); }
+    .code-block { background: var(--color-neutral-900); color: var(--color-neutral-200); padding: 1rem 1.3rem; border-radius: 6px; font-family: var(--font-mono); font-size: clamp(0.75rem, 1.05vw, 0.95rem); line-height: 1.55; margin: 0.8rem 0; overflow: hidden; border-left: 4px solid var(--color-accent-500); white-space: pre-wrap; }
     .code-block .code-comment { color: var(--color-neutral-500); }
     .code-block .code-key { color: var(--color-accent-300); }
     .code-block .code-file { color: var(--color-neutral-400); font-size: 0.88em; margin-bottom: 0.5rem; display: block; letter-spacing: 0.05em; }
@@ -157,10 +157,16 @@
     /* On-screen nav buttons — mouse fallback (right-click prev / wheel to page / side buttons) */
     .nav-btn { position: fixed; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: 0; font-size: 1.4rem; cursor: pointer; opacity: 0; transition: opacity 200ms ease, background 200ms ease; z-index: 7; user-select: none; display: flex; align-items: center; justify-content: center; line-height: 1; font-family: var(--font-sans); }
     .nav-btn:hover { background: rgba(0,0,0,0.55); opacity: 1; }
+    .nav-btn:focus-visible { outline: 3px solid var(--color-accent-500); outline-offset: 3px; opacity: 1; }
     .nav-btn:disabled { opacity: 0.15 !important; cursor: not-allowed; }
     body:hover .nav-btn { opacity: 0.5; }
     .nav-prev { left: 0.75rem; }
     .nav-next { right: 0.75rem; }
+
+    /* Respect user's reduced-motion preference (vestibular / ADHD considerations) */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
 
     @media print {
       body { overflow: visible; background: white; }
@@ -173,7 +179,7 @@
 </head>
 <body>
 
-<div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+<div class="progress" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
 
 <div class="deck" id="deck">
 
@@ -433,8 +439,10 @@ public-showcase/resume/index.html  <span class="marker">← auto-regenerated, ca
     <div class="slide-inner">
       <div class="eyebrow">08 · Timeline</div>
       <h2>v1 → v2 narrative pivot · in a single day</h2>
-      <svg class="timeline-svg" viewBox="0 0 1400 240" xmlns="http://www.w3.org/2000/svg" aria-label="v1 to v2 timeline">
-        <line x1="50" y1="140" x2="1350" y2="140" stroke="#E4E4E7" stroke-width="2"/>
+      <svg class="timeline-svg" viewBox="0 0 1400 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tl-title-en tl-desc-en">
+        <title id="tl-title-en">v1 to v2 narrative pivot timeline</title>
+        <desc id="tl-desc-en">Four governance events in a single day (2026-04-18): the mistranslation was caught, the promote-to-showcase skill was created, the bilingual interview-deck landed, and the v2 showcase shipped.</desc>
+        <line x1="50" y1="140" x2="1350" y2="140" stroke="#E4E4E7" stroke-width="2" aria-hidden="true"/>
         <g font-family="JetBrains Mono, monospace" font-size="14" fill="#52525B">
           <!-- Node 1 · v1 (below) -->
           <circle cx="140" cy="140" r="8" fill="#A1A1AA"/>
@@ -524,7 +532,7 @@ public-showcase/resume/index.html  <span class="marker">← auto-regenerated, ca
 <button class="nav-btn nav-prev" id="navPrev" aria-label="Previous" title="Previous (← / right-click / wheel up)">‹</button>
 <button class="nav-btn nav-next" id="navNext" aria-label="Next" title="Next (→ / click / wheel down)">›</button>
 
-<div class="counter" id="counter">1 / 18</div>
+<div class="counter" id="counter" aria-live="polite" aria-atomic="true">1 / 18</div>
 
 <script>
   const slides = document.querySelectorAll('.slide');
