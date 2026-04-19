@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>claude-present · A Self-Evolving Content System (Deck)</title>
+  <meta name="description" content="claude-present showcase v2 rewritten as a slide deck — for internal tech-share.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-neutral-50:  #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-300: #D4D4D8;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-800: #27272A;
+      --color-neutral-900: #18181B;
+      --color-neutral-950: #0A0A0A;
+      --color-accent-50:  #FFF1F2;
+      --color-accent-300: #FDA4AF;
+      --color-accent-500: #FB7185;
+      --color-accent-600: #E11D48;
+      --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { font-family: var(--font-sans); background: var(--color-neutral-950); overflow: hidden; }
+
+    .deck { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+    .slide {
+      width: min(96vw, calc(96vh * 16 / 9));
+      height: min(96vh, calc(96vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      background: var(--color-neutral-50);
+      display: none;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      border-radius: 4px;
+    }
+    .slide.active { display: block; }
+    .slide-inner {
+      position: absolute;
+      inset: 0;
+      padding: 3.5rem 4.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      transform-origin: top left;
+    }
+
+    .slide h1 { font-size: clamp(2.6rem, 6vw, 4.8rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 1.2rem 0; color: var(--color-neutral-900); }
+    .slide h2 { font-size: clamp(1.7rem, 3.8vw, 2.7rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 1rem 0; color: var(--color-neutral-900); }
+    .slide h3 { font-size: clamp(1.15rem, 2vw, 1.5rem); color: var(--color-neutral-600); font-weight: 500; margin: 0 0 0.8rem 0; }
+    .slide p, .slide li { font-size: clamp(1rem, 1.45vw, 1.35rem); line-height: 1.7; color: var(--color-neutral-700); }
+    .slide p { margin: 0.5rem 0; }
+    .slide ul { padding-left: 1.2em; margin: 0.5rem 0; }
+    .slide ul li { padding: 0.4rem 0; }
+    .slide strong { color: var(--color-neutral-900); font-weight: 600; }
+    .slide code { font-family: var(--font-mono); font-size: 0.92em; background: var(--color-neutral-100); padding: 0.1em 0.4em; border-radius: 3px; color: var(--color-accent-600); }
+
+    .eyebrow { font-family: var(--font-mono); font-size: clamp(0.8rem, 1.05vw, 1rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-600); margin-bottom: 0.9rem; }
+
+    .slide--cover { background: var(--color-neutral-50); }
+    .slide--cover .slide-inner { justify-content: center; }
+    .slide--cover h1 { font-size: clamp(3rem, 7.5vw, 5.5rem); }
+    .slide--cover .sub { font-size: clamp(1.3rem, 2.2vw, 1.8rem); color: var(--color-neutral-600); margin-top: 0.5rem; }
+    .slide--cover .meta { margin-top: auto; display: flex; justify-content: space-between; font-family: var(--font-mono); color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1.05rem); }
+
+    .slide--framing .slide-inner { justify-content: center; }
+    .slide--framing .lead { font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: var(--color-neutral-500); margin: 0.8rem 0; line-height: 1.5; }
+    .slide--framing .lead--pivot { color: var(--color-neutral-900); font-weight: 600; }
+
+    .slide--kpi .slide-inner { justify-content: center; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; margin-top: 1.2rem; }
+    .kpi-item { text-align: left; }
+    .kpi-value { font-size: clamp(3.5rem, 9vw, 6.5rem); font-weight: 700; letter-spacing: -0.05em; line-height: 1; color: var(--color-neutral-900); }
+    .kpi-value .unit { font-family: var(--font-mono); font-size: 0.3em; color: var(--color-accent-600); margin-left: 0.15em; letter-spacing: 0.02em; }
+    .kpi-label { margin-top: 0.9rem; font-size: clamp(0.85rem, 1.3vw, 1.05rem); color: var(--color-neutral-600); line-height: 1.6; }
+
+    .slide--problem .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 0.8rem; }
+    .slide--problem .compare-item { padding: 1.2rem 1.4rem; border-radius: 6px; background: var(--color-neutral-100); }
+    .slide--problem .compare-item.accent { background: var(--color-accent-50); border-left: 4px solid var(--color-accent-500); }
+    .slide--problem .compare-label { font-family: var(--font-mono); font-size: 0.85em; color: var(--color-neutral-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    .slide--problem .compare-item.accent .compare-label { color: var(--color-accent-600); }
+
+    .principles-list { list-style: none; padding: 0; margin: 0.8rem 0 0 0; }
+    .principles-list li { display: flex; align-items: baseline; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px dashed var(--color-neutral-200); }
+    .principles-list li:last-child { border-bottom: 0; }
+    .principles-list .num { font-family: var(--font-mono); color: var(--color-accent-600); font-size: 1.2em; font-weight: 600; min-width: 2.5em; }
+    .principles-list .title { font-weight: 600; color: var(--color-neutral-900); font-size: clamp(1.05rem, 1.6vw, 1.4rem); min-width: 14em; }
+    .principles-list .desc { color: var(--color-neutral-600); font-size: clamp(0.9rem, 1.3vw, 1.1rem); }
+
+    .arch-stack { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.8rem; }
+    .arch-layer { background: var(--color-neutral-100); border: 1px solid var(--color-neutral-200); border-radius: 6px; padding: 0.9rem 1.4rem; display: grid; grid-template-columns: 10em 1fr; align-items: center; gap: 1.2rem; }
+    .arch-layer.top { background: var(--color-accent-50); border-color: var(--color-accent-300); }
+    .arch-layer-name { font-family: var(--font-mono); color: var(--color-accent-600); font-weight: 600; font-size: 0.9em; letter-spacing: 0.05em; }
+    .arch-layer-desc { color: var(--color-neutral-700); font-size: clamp(0.9rem, 1.3vw, 1.1rem); }
+    .arch-arrow { text-align: center; color: var(--color-neutral-400); font-size: 1.3rem; line-height: 1; }
+
+    .slide--divider { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--divider .slide-inner { justify-content: center; padding: 3.5rem 5rem; }
+    .slide--divider .divider-num { font-family: var(--font-mono); font-size: clamp(0.9rem, 1.3vw, 1.15rem); letter-spacing: 0.15em; text-transform: uppercase; color: var(--color-accent-500); margin-bottom: 1.4rem; }
+    .slide--divider h1 { color: var(--color-neutral-50); font-size: clamp(3rem, 7vw, 5.5rem); margin: 0; line-height: 1; }
+    .slide--divider .divider-sub { margin-top: 1.4rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: clamp(0.95rem, 1.4vw, 1.15rem); letter-spacing: 0.05em; }
+
+    .slide--case h3.case-phase { color: var(--color-accent-600); font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); text-transform: uppercase; letter-spacing: 0.1em; margin: 0.8rem 0 0.3rem 0; }
+    .slide--case p.case-body { margin: 0.2rem 0 0.6rem 0; }
+
+    .code-block { background: var(--color-neutral-900); color: var(--color-neutral-200); padding: 1rem 1.3rem; border-radius: 6px; font-family: var(--font-mono); font-size: clamp(0.75rem, 1.05vw, 0.95rem); line-height: 1.55; margin: 0.8rem 0; overflow: hidden; border-left: 4px solid var(--color-accent-500); }
+    .code-block .code-comment { color: var(--color-neutral-500); }
+    .code-block .code-key { color: var(--color-accent-300); }
+    .code-block .code-file { color: var(--color-neutral-400); font-size: 0.88em; margin-bottom: 0.5rem; display: block; letter-spacing: 0.05em; }
+    .commit-chip { display: inline-flex; align-items: center; gap: 0.4em; font-family: var(--font-mono); font-size: 0.82em; color: var(--color-accent-600); background: var(--color-accent-50); padding: 0.15em 0.55em; border-radius: 3px; margin-right: 0.3em; }
+
+    .file-tree { font-family: var(--font-mono); font-size: clamp(0.8rem, 1.1vw, 1rem); color: var(--color-neutral-700); line-height: 1.65; background: var(--color-neutral-100); padding: 1rem 1.4rem; border-radius: 6px; margin: 0.8rem 0; white-space: pre; overflow: hidden; }
+    .file-tree .marker { color: var(--color-accent-600); font-weight: 600; }
+
+    .pull-quote { font-size: clamp(1.6rem, 3vw, 2.4rem); line-height: 1.35; color: var(--color-neutral-900); font-weight: 500; border-left: 6px solid var(--color-accent-500); padding: 0.3em 2rem; margin: 1.2rem 0; font-style: italic; }
+    .pull-quote + .pull-source { margin-left: calc(6px + 2rem); font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); color: var(--color-neutral-500); letter-spacing: 0.05em; }
+
+    .slide--timeline .timeline-svg { width: 100%; max-width: 100%; margin: 1.2rem auto 0; display: block; }
+    .slide--timeline .tl-legend { margin-top: 0.8rem; font-family: var(--font-mono); font-size: clamp(0.8rem, 1.1vw, 1rem); color: var(--color-neutral-500); display: flex; gap: 2rem; flex-wrap: wrap; }
+
+    .slide--proof .slide-inner { justify-content: center; }
+    .slide--proof .proof-line { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.5; color: var(--color-neutral-800); }
+    .slide--proof .proof-line strong { color: var(--color-accent-600); }
+    .slide--proof .proof-path { font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); color: var(--color-neutral-500); margin-top: 1rem; padding: 0.6rem 1rem; background: var(--color-neutral-100); border-radius: 4px; display: inline-block; }
+
+    .slide--takeaway { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--takeaway .slide-inner { justify-content: center; }
+    .slide--takeaway .punch { font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 700; color: var(--color-neutral-50); line-height: 1.2; margin: 0 0 1.5rem 0; letter-spacing: -0.02em; }
+    .slide--takeaway .punch em { color: var(--color-accent-500); font-style: normal; }
+    .slide--takeaway .observations { border-top: 1px solid var(--color-neutral-700); padding-top: 1.2rem; margin-top: 1rem; }
+    .slide--takeaway .observations li { color: var(--color-neutral-300); padding: 0.4rem 0; font-size: clamp(1rem, 1.5vw, 1.25rem); }
+    .slide--takeaway .observations li strong { color: var(--color-accent-500); }
+
+    .slide--closing { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--closing .slide-inner { justify-content: center; }
+    .slide--closing h2 { color: var(--color-neutral-50); font-size: clamp(2.6rem, 5.5vw, 4rem); }
+    .slide--closing .questions { margin-top: 1.5rem; list-style: none; padding: 0; }
+    .slide--closing .questions li { position: relative; padding: 0.4rem 0 0.4rem 2rem; color: var(--color-neutral-300); font-size: clamp(1.1rem, 1.7vw, 1.45rem); }
+    .slide--closing .questions li::before { content: "→"; position: absolute; left: 0; color: var(--color-accent-500); font-weight: 600; }
+    .slide--closing .footer-meta { margin-top: 2rem; font-family: var(--font-mono); font-size: clamp(0.82rem, 1.15vw, 1rem); color: var(--color-neutral-400); letter-spacing: 0.05em; }
+
+    .counter { position: fixed; right: 1rem; bottom: 0.75rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.05em; z-index: 5; user-select: none; }
+    .progress { position: fixed; left: 0; top: 0; right: 0; height: 3px; z-index: 6; }
+    .progress-fill { height: 100%; background: var(--color-accent-500); width: 0; transition: width 200ms ease; }
+
+    /* On-screen nav buttons — mouse fallback (right-click prev / wheel to page / side buttons) */
+    .nav-btn { position: fixed; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: 0; font-size: 1.4rem; cursor: pointer; opacity: 0; transition: opacity 200ms ease, background 200ms ease; z-index: 7; user-select: none; display: flex; align-items: center; justify-content: center; line-height: 1; font-family: var(--font-sans); }
+    .nav-btn:hover { background: rgba(0,0,0,0.55); opacity: 1; }
+    .nav-btn:disabled { opacity: 0.15 !important; cursor: not-allowed; }
+    body:hover .nav-btn { opacity: 0.5; }
+    .nav-prev { left: 0.75rem; }
+    .nav-next { right: 0.75rem; }
+
+    @media print {
+      body { overflow: visible; background: white; }
+      .deck { position: static; display: block; }
+      .slide { display: block !important; page-break-after: always; box-shadow: none; border-radius: 0; width: 100%; height: 100vh; }
+      .counter, .progress, .nav-btn { display: none !important; }
+      @page { size: landscape; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="deck" id="deck">
+
+  <!-- ========= Slide 1 · Cover ========= -->
+  <section class="slide slide--cover active">
+    <div class="slide-inner">
+      <div class="eyebrow">Internal Tech Share · 2026</div>
+      <h1>claude-present</h1>
+      <div class="sub">A personal AI toolchain that <strong>notices / corrects / publishes</strong> itself</div>
+      <div class="meta">
+        <span>Kenneth Chen</span>
+        <time datetime="2026-04-19">2026-04-19</time>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 2 · Framing ========= -->
+  <section class="slide slide--framing">
+    <div class="slide-inner">
+      <div class="eyebrow">Framing</div>
+      <h2>What I actually want to talk about isn't "how AI generates content"</h2>
+      <p class="lead">That problem has been solved in too many places already.</p>
+      <p class="lead lead--pivot">I want to talk about how a content system governs itself — <strong>after it's live</strong>.</p>
+      <p class="lead" style="margin-top: 1rem; font-size: clamp(1.1rem, 1.7vw, 1.4rem);">This is claude-present's narrative pivot from v1 to v2, and the reason this deck exists.</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 3 · KPI ========= -->
+  <section class="slide slide--kpi">
+    <div class="slide-inner">
+      <div class="eyebrow">01 · Measurable surface</div>
+      <h2 style="font-size: clamp(1.5rem, 3vw, 2.2rem);">Three numbers that aren't "feature counts"</h2>
+      <div class="kpi-grid">
+        <div class="kpi-item">
+          <div class="kpi-value">4<span class="unit">skills</span></div>
+          <div class="kpi-label">technical-report · internal-presentation · resume-profile · promote-to-showcase</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">60<span class="unit">+ rules</span></div>
+          <div class="kpi-label">Hard rules encoded across SKILL files, references, and anti-patterns</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">1<span class="unit">pipeline</span></div>
+          <div class="kpi-label">One-way private → public auto-publishing (system publishes itself)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 4 · Problem ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">02 · Problem</div>
+      <h2>v1's disease isn't v2's disease</h2>
+      <div class="compare" style="margin-top: 1rem;">
+        <div class="compare-item">
+          <div class="compare-label">v1 · early 2026</div>
+          <p style="margin: 0;"><strong>Drift.</strong><br>Every output drifts in style, structure, tone. Nothing compounds into an asset.</p>
+        </div>
+        <div class="compare-item accent">
+          <div class="compare-label">v2 · now</div>
+          <p style="margin: 0;"><strong>Governance after live.</strong><br>Once the system is live, what happens <em>after an error is found</em>? Does a human firefight, or does the system fix itself, remember, and never let anyone hit the same class of error again?</p>
+        </div>
+      </div>
+      <p style="margin-top: 1.2rem; color: var(--color-neutral-500); font-size: clamp(0.95rem, 1.3vw, 1.1rem);">The former is "can the AI produce?" The latter is "can the system producing the AI survive?"</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 5 · Foundation ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">03 · Foundation · inherited from v1</div>
+      <h2>Three-layer constraint on AI's freedom</h2>
+      <ul class="principles-list">
+        <li>
+          <span class="num">01</span>
+          <span class="title">Design system as single source of truth</span>
+          <span class="desc"><code>tokens.json</code> is the only source of visual decisions. No skill invents its own colors or fonts.</span>
+        </li>
+        <li>
+          <span class="num">02</span>
+          <span class="title">Skills must read a gold standard</span>
+          <span class="desc">Every skill reads <code>examples/</code> before producing. No blank-page generation — past quality anchors future output.</span>
+        </li>
+        <li>
+          <span class="num">03</span>
+          <span class="title">Three-file output set</span>
+          <span class="desc">Every output ships with <code>index.html</code> + <code>source-notes.md</code> + <code>generation-log.md</code> — the output is data + metadata + traceability.</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 6 · Architecture ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">04 · Architecture</div>
+      <h2>Direction of dependency, three layers</h2>
+      <div class="arch-stack">
+        <div class="arch-layer top">
+          <div class="arch-layer-name">outputs/</div>
+          <div class="arch-layer-desc">Artifact + source-notes + generation-log · the three-file set is a progression signal</div>
+        </div>
+        <div class="arch-arrow">↑ reads reference / profile</div>
+        <div class="arch-layer">
+          <div class="arch-layer-name">.claude/skills/</div>
+          <div class="arch-layer-desc">4 skills · Progressive Disclosure · scenario-profiles routing · examples as gold standard</div>
+        </div>
+        <div class="arch-arrow">↑ reads tokens / patterns</div>
+        <div class="arch-layer">
+          <div class="arch-layer-name">design-system/</div>
+          <div class="arch-layer-desc">Colors · fonts · spacing · copy tone · components as single source of truth</div>
+        </div>
+      </div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem);">Dependencies only flow downward, never sideways. That constraint is what lets the system evolve without collapsing.</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 7 · Section II Divider ========= -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section II · Three Exhibits</div>
+      <h1>Three live<br>self-governance cases</h1>
+      <div class="divider-sub">notice &nbsp;→&nbsp; correct &nbsp;→&nbsp; encode</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 8 · Exhibit A pt1 · Governance ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">05 · Exhibit A · Governance</div>
+      <h2>Mingchuan translation incident · system noticed, system fixed</h2>
+      <h3 class="case-phase">Situation</h3>
+      <p class="case-body">The very first time <code>resume-profile</code> skill was used on the user's actual résumé, the AI rendered Mingchuan University's <code>Information and Telecommunications Engineering</code> as "資訊傳播工程" — the correct Chinese is "<strong>電腦與通訊工程</strong>" (per the official Mingchuan CCE department site, <code>sites.google.com/view/mcuite</code>). A plausible-sounding but wrong rendering.</p>
+      <h3 class="case-phase">Action</h3>
+      <p class="case-body">The user caught it on review and flagged it as "very serious" — a mistranslation on a résumé directly hits credibility. In the moment:</p>
+      <ul>
+        <li><strong>Fix</strong>: correct the translation in resume.html immediately</li>
+        <li><strong>Remember</strong>: encode the lesson as <strong>rule 5</strong> in <code>.claude/skills/resume-profile/references/anti-patterns.md</code></li>
+        <li><strong>Lock</strong>: commit <span class="commit-chip">8a1fc3a</span> body carries the full record</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 9 · Exhibit A pt2 · Governance (Result) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">05 · Exhibit A · Result</div>
+      <h2>One error → one rule → same failure class cannot recur</h2>
+      <div class="code-block">
+<span class="code-file">.claude/skills/resume-profile/references/anti-patterns.md</span><span class="code-comment"># Rule 5 · Proper nouns must be Google-verified</span>
+<span class="code-comment"># Added 2026-04-18 (Mingchuan incident)</span>
+
+For institutions / departments / companies / products:
+  <span class="code-key">- Do NOT infer translations</span>
+  <span class="code-key">- MUST Google-verify the official rendering</span>
+  <span class="code-key">- If no official translation exists, mark "unverified"</span>
+    <span class="code-key">  instead of outputting with false confidence</span>
+
+<span class="code-comment"># Reason: a mistranslation on a résumé is not a formatting</span>
+<span class="code-comment"># issue — it's a credibility issue.</span></div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-600); font-size: clamp(0.95rem, 1.4vw, 1.15rem);">From that moment on, <strong>every resume-profile output obeys this rule</strong>. That's a governance loop: the error isn't just fixed, it's remembered by the system.</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 10 · Exhibit B pt1 · Self-publish ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">06 · Exhibit B · Self-publish</div>
+      <h2>Private → public one-way pipeline · three filter layers</h2>
+      <h3 class="case-phase">Situation</h3>
+      <p class="case-body">Personal AI outputs naturally need to split into public (OK to share) and private (email, unverified numbers, internal events). But hand-maintaining two copies drifts — we need one source, two destinations.</p>
+      <h3 class="case-phase">Action</h3>
+      <p class="case-body">Built the <code>promote-to-showcase</code> skill with three filter layers:</p>
+      <div class="file-tree">outputs/resume/v0.2.0_.../resume.html
+  ├─ &lt;div class=<span class="marker">"private-only"</span>&gt;...&lt;/div&gt;  <span class="marker">← layer 1: private marker</span>
+  ├─ "Tel: 0912-xxx-xxx"         <span class="marker">← layer 2: field filter (email/tel/etc)</span>
+  └─ &lt;!-- sync-marker: ZH-... --&gt;  <span class="marker">← layer 3: internal comments stripped</span>
+
+public-showcase/resume/index.html  <span class="marker">← auto-regenerated, can never carry private back</span></div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 11 · Exhibit B pt2 · Self-publish (Result) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">06 · Exhibit B · Result</div>
+      <h2>One skill invocation · two repos synchronized</h2>
+      <ul style="margin-top: 0.5rem;">
+        <li><strong>One-way</strong>: private → public only. Never pull back (so public never contaminates the private source).</li>
+        <li><strong>Explicit</strong>: user must <em>name</em> the output to publish. No blanket auto-publish of everything.</li>
+        <li><strong>Traceable</strong>: commits + pushes logged in the destination repo.</li>
+      </ul>
+      <p style="margin-top: 1rem; font-family: var(--font-mono); color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1rem);">
+        <span class="commit-chip">9ed8654</span> skill itself ·
+        <span class="commit-chip">b3a4f72</span> landing marker redesign ·
+        <span class="commit-chip">f487378</span> first promote validation
+      </p>
+      <p style="margin-top: 1rem; color: var(--color-neutral-600); font-size: clamp(0.95rem, 1.4vw, 1.15rem);">
+        <strong>Portable principle</strong>: when you need to split public / private, put the filter on the publishing pipeline, not the source. Keep source complete, be austere at the edge — far more stable than maintaining two sources.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 12 · Exhibit C pt1 · Identity ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">07 · Exhibit C · Identity</div>
+      <h2>Personal identity · the trust-cost stress test</h2>
+      <h3 class="case-phase">Situation</h3>
+      <p class="case-body">Résumé / LinkedIn is the harshest stress test any content system will face — wrong info doesn't just mean a re-run. The trust cost is <strong>real career damage</strong>.</p>
+      <h3 class="case-phase">Action</h3>
+      <p class="case-body">Added three supports to <code>resume-profile</code>:</p>
+      <ul>
+        <li><code>inputs/resume/linkedin/</code> stores a PDF snapshot as LinkedIn ground-truth baseline</li>
+        <li>Dual <strong>LinkedIn refresh / rebrand</strong> guides (routine maintenance vs strategic repositioning)</li>
+        <li><strong>interview-material preservation</strong>: raw interview data never deleted, every résumé iteration traceable back to source</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 13 · Exhibit C pt2 · Identity (Result) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">07 · Exhibit C · Result</div>
+      <h2>Deferred execution · a must-have for trust-sensitive systems</h2>
+      <p style="margin-top: 0.5rem;">When the user said "defer the LinkedIn rebrand", the system didn't force completion now.</p>
+      <div class="code-block">
+<span class="code-file">resume-profile · Step 6 · Ask if LinkedIn guide is needed</span>
+<span class="code-key">refresh</span>  — routine maintenance (polish text, add new projects)
+<span class="code-key">rebrand</span>  — strategic repositioning (overhaul personal brand)
+<span class="code-key">skip</span>     — not this time (<span class="code-comment">can re-trigger later; LinkedIn snapshot stays</span>)</div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-600); font-size: clamp(0.95rem, 1.4vw, 1.15rem);">
+        <strong>Deferred execution</strong> should be built into any system touching trust-sensitive content: give the user the right to say "not now" instead of being shoved forward by the system.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 14 · Callout · Pull quote ========= -->
+  <section class="slide">
+    <div class="slide-inner" style="justify-content: center;">
+      <div class="eyebrow">Reflection</div>
+      <div class="pull-quote">
+        The page publishing this story<br>
+        is itself an artifact<br>
+        of that story.
+      </div>
+      <div class="pull-source">— claude-present showcase v2, hero section</div>
+      <p style="margin-top: 1.8rem; color: var(--color-neutral-600); font-size: clamp(1rem, 1.5vw, 1.3rem); max-width: 80%;">
+        The page narrating this story is itself evidence of the narration. Not a meta flourish — a concrete demonstration of whether the system can witness itself.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 15 · Timeline ========= -->
+  <section class="slide slide--timeline">
+    <div class="slide-inner">
+      <div class="eyebrow">08 · Timeline</div>
+      <h2>v1 → v2 narrative pivot · in a single day</h2>
+      <svg class="timeline-svg" viewBox="0 0 1400 240" xmlns="http://www.w3.org/2000/svg" aria-label="v1 to v2 timeline">
+        <line x1="50" y1="140" x2="1350" y2="140" stroke="#E4E4E7" stroke-width="2"/>
+        <g font-family="JetBrains Mono, monospace" font-size="14" fill="#52525B">
+          <!-- Node 1 · v1 (below) -->
+          <circle cx="140" cy="140" r="8" fill="#A1A1AA"/>
+          <text x="140" y="175" text-anchor="middle" font-weight="600" fill="#3F3F46">v1 showcase</text>
+          <text x="140" y="198" text-anchor="middle">morning · drift framing</text>
+
+          <!-- Node 2 · translation incident (above) -->
+          <circle cx="420" cy="140" r="8" fill="#FB7185"/>
+          <text x="420" y="70" text-anchor="middle" font-weight="600" fill="#E11D48">translation incident</text>
+          <text x="420" y="93" text-anchor="middle">first run · user caught</text>
+          <text x="420" y="114" text-anchor="middle" fill="#A1A1AA">8a1fc3a</text>
+
+          <!-- Node 3 · promote skill (below) -->
+          <circle cx="700" cy="140" r="8" fill="#FB7185"/>
+          <text x="700" y="175" text-anchor="middle" font-weight="600" fill="#E11D48">promote skill</text>
+          <text x="700" y="198" text-anchor="middle">one-way two-repo sync</text>
+          <text x="700" y="219" text-anchor="middle" fill="#A1A1AA">9ed8654</text>
+
+          <!-- Node 4 · interview-deck (above) -->
+          <circle cx="980" cy="140" r="8" fill="#FB7185"/>
+          <text x="980" y="70" text-anchor="middle" font-weight="600" fill="#E11D48">interview-deck</text>
+          <text x="980" y="93" text-anchor="middle">bilingual ZH + EN</text>
+          <text x="980" y="114" text-anchor="middle" fill="#A1A1AA">3b3139b</text>
+
+          <!-- Node 5 · v2 showcase (below, emphasized) -->
+          <circle cx="1260" cy="140" r="10" fill="#E11D48" stroke="#FFF1F2" stroke-width="3"/>
+          <text x="1260" y="175" text-anchor="middle" font-weight="700" fill="#E11D48">v2 showcase</text>
+          <text x="1260" y="198" text-anchor="middle">narrative pivot lands</text>
+          <text x="1260" y="219" text-anchor="middle" fill="#A1A1AA">1324aa7</text>
+        </g>
+      </svg>
+      <div class="tl-legend">
+        <span>● Neutral = static milestone</span>
+        <span style="color: var(--color-accent-600);">● Coral = governance event (error / fix / encode)</span>
+      </div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem);">One day · 4 trigger events · the system grew from "designing a set of rules" into "rules that reinforce themselves."</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 16 · Proof ========= -->
+  <section class="slide slide--proof">
+    <div class="slide-inner">
+      <div class="eyebrow">09 · Proof</div>
+      <h2>This deck is itself a product of the system</h2>
+      <p class="proof-line">
+        The 18 slides you're looking at —<br>
+        are an artifact produced by the <strong>internal-presentation skill</strong>,<br>
+        matched through <code>scenario-profiles/workshop-hybrid.md</code>,<br>
+        anchored against <code>examples/</code> gold standards.
+      </p>
+      <p class="proof-line" style="margin-top: 1rem;">
+        The content is a rewrite of a scroll-showcase — not fabricated from scratch.
+      </p>
+      <div class="proof-path">outputs/presentations/2026-04-19_claude-present-showcase-deck/</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 17 · Takeaway ========= -->
+  <section class="slide slide--takeaway">
+    <div class="slide-inner">
+      <div class="eyebrow" style="color: var(--color-accent-500);">Takeaway</div>
+      <div class="punch">Maturity isn't output count —<br>it's <em>governance loops</em>.</div>
+      <ul class="observations">
+        <li><strong>01 —</strong> How much a system produces matters less than how much it remembers after an error.</li>
+        <li><strong>02 —</strong> Encoding rules is worth more than producing outputs — the former keeps future runs from hitting the same class of failure.</li>
+        <li><strong>03 —</strong> A system that can publish itself will outlive one that waits for humans to update it — by about a decade.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 18 · Closing / Q&A ========= -->
+  <section class="slide slide--closing">
+    <div class="slide-inner">
+      <div class="eyebrow">10 · Q&amp;A</div>
+      <h2>Turning it back to you</h2>
+      <ul class="questions">
+        <li>Which live system in your team had an error found, but never encoded into a rule?</li>
+        <li>Between source-of-truth and publishing filter — which end is doing the austerity work?</li>
+        <li>If you had to add "deferred execution" to one existing system tomorrow, where would you touch first?</li>
+      </ul>
+      <div class="footer-meta">sunmerandone.github.io &nbsp;·&nbsp; original scroll version at <code>outputs/presentations/2026-04-18_claude-present-showcase-v2/</code></div>
+    </div>
+  </section>
+
+</div>
+
+<button class="nav-btn nav-prev" id="navPrev" aria-label="Previous" title="Previous (← / right-click / wheel up)">‹</button>
+<button class="nav-btn nav-next" id="navNext" aria-label="Next" title="Next (→ / click / wheel down)">›</button>
+
+<div class="counter" id="counter">1 / 18</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let idx = 0;
+  const counter = document.getElementById('counter');
+  const progressFill = document.getElementById('progressFill');
+  const navPrev = document.getElementById('navPrev');
+  const navNext = document.getElementById('navNext');
+
+  function fitSlide(slide) {
+    const inner = slide.querySelector('.slide-inner');
+    if (!inner) return;
+    inner.style.transform = '';
+    const contentH = inner.scrollHeight;
+    const containerH = slide.clientHeight;
+    if (contentH > containerH) {
+      const ratio = containerH / contentH;
+      inner.style.transform = `scale(${ratio})`;
+    }
+  }
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = `${idx + 1} / ${total}`;
+    progressFill.style.width = `${((idx + 1) / total) * 100}%`;
+    requestAnimationFrame(() => fitSlide(slides[idx]));
+    navPrev.disabled = (idx === 0);
+    navNext.disabled = (idx === total - 1);
+  }
+  function next() { if (idx < total - 1) { idx++; render(); } }
+  function prev() { if (idx > 0)         { idx--; render(); } }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') { idx = 0; render(); }
+    else if (e.key === 'End')  { idx = total - 1; render(); }
+    else if (e.key === 'f')    { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  });
+
+  // ---------- Mouse: left-click advances, right-click goes back ----------
+  document.getElementById('deck').addEventListener('click', next);
+  document.addEventListener('contextmenu', (e) => { e.preventDefault(); prev(); });
+
+  // ---------- Wheel: one firm scroll = one page (throttled) ----------
+  let wheelLock = false;
+  document.addEventListener('wheel', (e) => {
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 10) return;
+    wheelLock = true;
+    setTimeout(() => { wheelLock = false; }, 500);
+    if (e.deltaY > 0) next(); else prev();
+  }, { passive: true });
+
+  // ---------- On-screen nav buttons ----------
+  navPrev.addEventListener('click', (e) => { e.stopPropagation(); prev(); });
+  navNext.addEventListener('click', (e) => { e.stopPropagation(); next(); });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => fitSlide(slides[idx]), 100);
+  });
+
+  render();
+</script>
+
+</body>
+</html>

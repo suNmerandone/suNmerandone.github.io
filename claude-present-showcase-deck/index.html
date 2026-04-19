@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>claude-present · 自我演進的系統設計（Deck）</title>
+  <meta name="description" content="把 claude-present showcase v2 改寫成翻頁 deck 格式 — 用於內部技術分享。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-neutral-50:  #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-300: #D4D4D8;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-800: #27272A;
+      --color-neutral-900: #18181B;
+      --color-neutral-950: #0A0A0A;
+      --color-accent-50:  #FFF1F2;
+      --color-accent-300: #FDA4AF;
+      --color-accent-500: #FB7185;
+      --color-accent-600: #E11D48;
+      --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { font-family: var(--font-sans); background: var(--color-neutral-950); overflow: hidden; }
+
+    .deck { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+    .slide {
+      width: min(96vw, calc(96vh * 16 / 9));
+      height: min(96vh, calc(96vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      background: var(--color-neutral-50);
+      display: none;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      border-radius: 4px;
+    }
+    .slide.active { display: block; }
+    .slide-inner {
+      position: absolute;
+      inset: 0;
+      padding: 3.5rem 4.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      transform-origin: top left;
+    }
+
+    .slide h1 { font-size: clamp(2.6rem, 6vw, 4.8rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 1.2rem 0; color: var(--color-neutral-900); }
+    .slide h2 { font-size: clamp(1.7rem, 3.8vw, 2.7rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 1rem 0; color: var(--color-neutral-900); }
+    .slide h3 { font-size: clamp(1.15rem, 2vw, 1.5rem); color: var(--color-neutral-600); font-weight: 500; margin: 0 0 0.8rem 0; }
+    .slide p, .slide li { font-size: clamp(1rem, 1.45vw, 1.35rem); line-height: 1.7; color: var(--color-neutral-700); }
+    .slide p { margin: 0.5rem 0; }
+    .slide ul { padding-left: 1.2em; margin: 0.5rem 0; }
+    .slide ul li { padding: 0.4rem 0; }
+    .slide strong { color: var(--color-neutral-900); font-weight: 600; }
+    .slide code { font-family: var(--font-mono); font-size: 0.92em; background: var(--color-neutral-100); padding: 0.1em 0.4em; border-radius: 3px; color: var(--color-accent-600); }
+
+    .eyebrow { font-family: var(--font-mono); font-size: clamp(0.8rem, 1.05vw, 1rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-600); margin-bottom: 0.9rem; }
+
+    /* ========== Slide types ========== */
+
+    .slide--cover { background: var(--color-neutral-50); }
+    .slide--cover .slide-inner { justify-content: center; }
+    .slide--cover h1 { font-size: clamp(3rem, 7.5vw, 5.5rem); }
+    .slide--cover .sub { font-size: clamp(1.3rem, 2.2vw, 1.8rem); color: var(--color-neutral-600); margin-top: 0.5rem; }
+    .slide--cover .meta { margin-top: auto; display: flex; justify-content: space-between; font-family: var(--font-mono); color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1.05rem); }
+
+    .slide--framing .slide-inner { justify-content: center; }
+    .slide--framing .lead { font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: var(--color-neutral-500); margin: 0.8rem 0; line-height: 1.5; }
+    .slide--framing .lead--pivot { color: var(--color-neutral-900); font-weight: 600; }
+
+    .slide--kpi .slide-inner { justify-content: center; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; margin-top: 1.2rem; }
+    .kpi-item { text-align: left; }
+    .kpi-value { font-size: clamp(3.5rem, 9vw, 6.5rem); font-weight: 700; letter-spacing: -0.05em; line-height: 1; color: var(--color-neutral-900); }
+    .kpi-value .unit { font-family: var(--font-mono); font-size: 0.3em; color: var(--color-accent-600); margin-left: 0.15em; letter-spacing: 0.02em; }
+    .kpi-label { margin-top: 0.9rem; font-size: clamp(0.85rem, 1.3vw, 1.05rem); color: var(--color-neutral-600); line-height: 1.6; }
+
+    .slide--problem .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 0.8rem; }
+    .slide--problem .compare-item { padding: 1.2rem 1.4rem; border-radius: 6px; background: var(--color-neutral-100); }
+    .slide--problem .compare-item.accent { background: var(--color-accent-50); border-left: 4px solid var(--color-accent-500); }
+    .slide--problem .compare-label { font-family: var(--font-mono); font-size: 0.85em; color: var(--color-neutral-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    .slide--problem .compare-item.accent .compare-label { color: var(--color-accent-600); }
+
+    .principles-list { list-style: none; padding: 0; margin: 0.8rem 0 0 0; }
+    .principles-list li { display: flex; align-items: baseline; gap: 1rem; padding: 0.6rem 0; border-bottom: 1px dashed var(--color-neutral-200); }
+    .principles-list li:last-child { border-bottom: 0; }
+    .principles-list .num { font-family: var(--font-mono); color: var(--color-accent-600); font-size: 1.2em; font-weight: 600; min-width: 2.5em; }
+    .principles-list .title { font-weight: 600; color: var(--color-neutral-900); font-size: clamp(1.05rem, 1.6vw, 1.4rem); min-width: 12em; }
+    .principles-list .desc { color: var(--color-neutral-600); font-size: clamp(0.9rem, 1.3vw, 1.1rem); }
+
+    .arch-stack { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.8rem; }
+    .arch-layer { background: var(--color-neutral-100); border: 1px solid var(--color-neutral-200); border-radius: 6px; padding: 0.9rem 1.4rem; display: grid; grid-template-columns: 10em 1fr; align-items: center; gap: 1.2rem; }
+    .arch-layer.top { background: var(--color-accent-50); border-color: var(--color-accent-300); }
+    .arch-layer-name { font-family: var(--font-mono); color: var(--color-accent-600); font-weight: 600; font-size: 0.9em; letter-spacing: 0.05em; }
+    .arch-layer-desc { color: var(--color-neutral-700); font-size: clamp(0.9rem, 1.3vw, 1.1rem); }
+    .arch-arrow { text-align: center; color: var(--color-neutral-400); font-size: 1.3rem; line-height: 1; }
+
+    .slide--divider { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--divider .slide-inner { justify-content: center; padding: 3.5rem 5rem; }
+    .slide--divider .divider-num { font-family: var(--font-mono); font-size: clamp(0.9rem, 1.3vw, 1.15rem); letter-spacing: 0.15em; text-transform: uppercase; color: var(--color-accent-500); margin-bottom: 1.4rem; }
+    .slide--divider h1 { color: var(--color-neutral-50); font-size: clamp(3rem, 7vw, 5.5rem); margin: 0; line-height: 1; }
+    .slide--divider .divider-sub { margin-top: 1.4rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: clamp(0.95rem, 1.4vw, 1.15rem); letter-spacing: 0.05em; }
+
+    .slide--case h3.case-phase { color: var(--color-accent-600); font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); text-transform: uppercase; letter-spacing: 0.1em; margin: 0.8rem 0 0.3rem 0; }
+    .slide--case p.case-body { margin: 0.2rem 0 0.6rem 0; }
+
+    .code-block { background: var(--color-neutral-900); color: var(--color-neutral-200); padding: 1rem 1.3rem; border-radius: 6px; font-family: var(--font-mono); font-size: clamp(0.75rem, 1.05vw, 0.95rem); line-height: 1.55; margin: 0.8rem 0; overflow: hidden; border-left: 4px solid var(--color-accent-500); }
+    .code-block .code-comment { color: var(--color-neutral-500); }
+    .code-block .code-key { color: var(--color-accent-300); }
+    .code-block .code-file { color: var(--color-neutral-400); font-size: 0.88em; margin-bottom: 0.5rem; display: block; letter-spacing: 0.05em; }
+    .commit-chip { display: inline-flex; align-items: center; gap: 0.4em; font-family: var(--font-mono); font-size: 0.82em; color: var(--color-accent-600); background: var(--color-accent-50); padding: 0.15em 0.55em; border-radius: 3px; margin-right: 0.3em; }
+
+    .file-tree { font-family: var(--font-mono); font-size: clamp(0.8rem, 1.1vw, 1rem); color: var(--color-neutral-700); line-height: 1.65; background: var(--color-neutral-100); padding: 1rem 1.4rem; border-radius: 6px; margin: 0.8rem 0; white-space: pre; overflow: hidden; }
+    .file-tree .marker { color: var(--color-accent-600); font-weight: 600; }
+
+    .pull-quote { font-size: clamp(1.6rem, 3vw, 2.4rem); line-height: 1.35; color: var(--color-neutral-900); font-weight: 500; border-left: 6px solid var(--color-accent-500); padding: 0.3em 2rem; margin: 1.2rem 0; font-style: italic; }
+    .pull-quote + .pull-source { margin-left: calc(6px + 2rem); font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); color: var(--color-neutral-500); letter-spacing: 0.05em; }
+
+    .slide--timeline .timeline-svg { width: 100%; max-width: 100%; margin: 1.2rem auto 0; display: block; }
+    .slide--timeline .tl-legend { margin-top: 0.8rem; font-family: var(--font-mono); font-size: clamp(0.8rem, 1.1vw, 1rem); color: var(--color-neutral-500); display: flex; gap: 2rem; flex-wrap: wrap; }
+
+    .slide--proof .slide-inner { justify-content: center; }
+    .slide--proof .proof-line { font-size: clamp(1.5rem, 2.6vw, 2.1rem); line-height: 1.5; color: var(--color-neutral-800); }
+    .slide--proof .proof-line strong { color: var(--color-accent-600); }
+    .slide--proof .proof-path { font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); color: var(--color-neutral-500); margin-top: 1rem; padding: 0.6rem 1rem; background: var(--color-neutral-100); border-radius: 4px; display: inline-block; }
+
+    .slide--takeaway { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--takeaway .slide-inner { justify-content: center; }
+    .slide--takeaway .punch { font-size: clamp(2.4rem, 5vw, 3.8rem); font-weight: 700; color: var(--color-neutral-50); line-height: 1.2; margin: 0 0 1.5rem 0; letter-spacing: -0.02em; }
+    .slide--takeaway .punch em { color: var(--color-accent-500); font-style: normal; }
+    .slide--takeaway .observations { border-top: 1px solid var(--color-neutral-700); padding-top: 1.2rem; margin-top: 1rem; }
+    .slide--takeaway .observations li { color: var(--color-neutral-300); padding: 0.4rem 0; font-size: clamp(1rem, 1.5vw, 1.25rem); }
+    .slide--takeaway .observations li strong { color: var(--color-accent-500); }
+
+    .slide--closing { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--closing .slide-inner { justify-content: center; }
+    .slide--closing h2 { color: var(--color-neutral-50); font-size: clamp(2.6rem, 5.5vw, 4rem); }
+    .slide--closing .questions { margin-top: 1.5rem; list-style: none; padding: 0; }
+    .slide--closing .questions li { position: relative; padding: 0.4rem 0 0.4rem 2rem; color: var(--color-neutral-300); font-size: clamp(1.1rem, 1.7vw, 1.45rem); }
+    .slide--closing .questions li::before { content: "→"; position: absolute; left: 0; color: var(--color-accent-500); font-weight: 600; }
+    .slide--closing .footer-meta { margin-top: 2rem; font-family: var(--font-mono); font-size: clamp(0.82rem, 1.15vw, 1rem); color: var(--color-neutral-400); letter-spacing: 0.05em; }
+
+    .counter { position: fixed; right: 1rem; bottom: 0.75rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.05em; z-index: 5; user-select: none; }
+    .progress { position: fixed; left: 0; top: 0; right: 0; height: 3px; z-index: 6; }
+    .progress-fill { height: 100%; background: var(--color-accent-500); width: 0; transition: width 200ms ease; }
+
+    /* On-screen nav buttons — mouse fallback（右鍵 prev / 滾輪切頁 / 側邊按鈕） */
+    .nav-btn { position: fixed; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: 0; font-size: 1.4rem; cursor: pointer; opacity: 0; transition: opacity 200ms ease, background 200ms ease; z-index: 7; user-select: none; display: flex; align-items: center; justify-content: center; line-height: 1; font-family: var(--font-sans); }
+    .nav-btn:hover { background: rgba(0,0,0,0.55); opacity: 1; }
+    .nav-btn:disabled { opacity: 0.15 !important; cursor: not-allowed; }
+    body:hover .nav-btn { opacity: 0.5; }
+    .nav-prev { left: 0.75rem; }
+    .nav-next { right: 0.75rem; }
+
+    @media print {
+      body { overflow: visible; background: white; }
+      .deck { position: static; display: block; }
+      .slide { display: block !important; page-break-after: always; box-shadow: none; border-radius: 0; width: 100%; height: 100vh; }
+      .counter, .progress, .nav-btn { display: none !important; }
+      @page { size: landscape; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="deck" id="deck">
+
+  <!-- ========= Slide 1 · Cover ========= -->
+  <section class="slide slide--cover active">
+    <div class="slide-inner">
+      <div class="eyebrow">Internal Tech Share · 2026</div>
+      <h1>claude-present</h1>
+      <div class="sub">一套會自我<strong>發現 / 修正 / 發布</strong>的個人 AI 工具鏈</div>
+      <div class="meta">
+        <span>Kenneth Chen</span>
+        <time datetime="2026-04-19">2026-04-19</time>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 2 · Framing ========= -->
+  <section class="slide slide--framing">
+    <div class="slide-inner">
+      <div class="eyebrow">Framing</div>
+      <h2>今天想談的其實不是「AI 怎麼生內容」</h2>
+      <p class="lead">那個問題已經被解到太多地方了。</p>
+      <p class="lead lead--pivot">我想談的是 —— 內容系統在 <strong>live 之後</strong>，怎麼自我治理。</p>
+      <p class="lead" style="margin-top: 1rem; font-size: clamp(1.1rem, 1.7vw, 1.4rem);">這是 claude-present 從 v1 到 v2 的敘事轉向，也是這份 deck 存在的理由。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 3 · KPI ========= -->
+  <section class="slide slide--kpi">
+    <div class="slide-inner">
+      <div class="eyebrow">01 · 目前能度量的東西</div>
+      <h2 style="font-size: clamp(1.5rem, 3vw, 2.2rem);">三個不是「功能數」的數字</h2>
+      <div class="kpi-grid">
+        <div class="kpi-item">
+          <div class="kpi-value">4<span class="unit">skills</span></div>
+          <div class="kpi-label">technical-report · internal-presentation · resume-profile · promote-to-showcase</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">60<span class="unit">+ rules</span></div>
+          <div class="kpi-label">跨 SKILL / references / anti-patterns 編碼的硬規則數</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">1<span class="unit">pipeline</span></div>
+          <div class="kpi-label">私 → 公的單向自動發布管道（自己產自己發）</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 4 · Problem ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">02 · Problem</div>
+      <h2>v1 的病不是 v2 的病</h2>
+      <div class="compare" style="margin-top: 1rem;">
+        <div class="compare-item">
+          <div class="compare-label">v1 · 2026 上半年</div>
+          <p style="margin: 0;"><strong>Drift。</strong><br>每次產出風格、結構、語氣都漂移。無法累積成資產。</p>
+        </div>
+        <div class="compare-item accent">
+          <div class="compare-label">v2 · 現在</div>
+          <p style="margin: 0;"><strong>Governance after live。</strong><br>系統上線後，<em>錯誤被發現之後</em>怎麼辦？是人去救火，還是系統自己修、自己記、下次別人也不犯？</p>
+        </div>
+      </div>
+      <p style="margin-top: 1.2rem; color: var(--color-neutral-500); font-size: clamp(0.95rem, 1.3vw, 1.1rem);">前者是「讓 AI 能產」的問題，後者是「讓 AI 產的系統能活」的問題。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 5 · Foundation ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">03 · Foundation · 來自 v1 的三原則</div>
+      <h2>三層結構，限制 AI 自由度</h2>
+      <ul class="principles-list">
+        <li>
+          <span class="num">01</span>
+          <span class="title">Design system 單一真實來源</span>
+          <span class="desc"><code>tokens.json</code> 是所有視覺的唯一來源，任何 skill 不能自己發明顏色或字型。</span>
+        </li>
+        <li>
+          <span class="num">02</span>
+          <span class="title">Skills 必讀 gold standard</span>
+          <span class="desc">每個 skill 觸發時必須先讀 <code>examples/</code>，禁止憑空生成；讓過去的好產出 anchor 未來。</span>
+        </li>
+        <li>
+          <span class="num">03</span>
+          <span class="title">Outputs 三件組</span>
+          <span class="desc">每次產出都帶 <code>index.html</code> + <code>source-notes.md</code> + <code>generation-log.md</code>，讓產出同時是資料 + metadata + 追溯訊號。</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 6 · Architecture ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">04 · Architecture</div>
+      <h2>三層架構的依賴方向</h2>
+      <div class="arch-stack">
+        <div class="arch-layer top">
+          <div class="arch-layer-name">outputs/</div>
+          <div class="arch-layer-desc">產物本身 + source-notes + generation-log · 三件組作為進化訊號</div>
+        </div>
+        <div class="arch-arrow">↑ 讀 reference / 讀 profile</div>
+        <div class="arch-layer">
+          <div class="arch-layer-name">.claude/skills/</div>
+          <div class="arch-layer-desc">4 個 skills · Progressive Disclosure · scenario-profiles 路由 · examples 為 gold standard</div>
+        </div>
+        <div class="arch-arrow">↑ 讀 tokens / 讀 patterns</div>
+        <div class="arch-layer">
+          <div class="arch-layer-name">design-system/</div>
+          <div class="arch-layer-desc">顏色 · 字型 · 間距 · copy tone · components 的單一真實來源</div>
+        </div>
+      </div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem);">依賴只能向下，不能橫向。這個限制就是系統能演進而不崩的關鍵。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 7 · Section II Divider ========= -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section II · Three Exhibits</div>
+      <h1>三個<br>自我治理的活案例</h1>
+      <div class="divider-sub">notice &nbsp;→&nbsp; correct &nbsp;→&nbsp; encode</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 8 · Exhibit A pt1 · Governance (S+A) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">05 · Exhibit A · Governance</div>
+      <h2>銘傳譯名事件 · 系統自己發現、自己修</h2>
+      <h3 class="case-phase">Situation</h3>
+      <p class="case-body"><code>resume-profile</code> skill 首次用於本人履歷時，AI 將銘傳大學 <code>Information and Telecommunications Engineering</code> 誤譯為「資訊傳播工程」—— 正確譯名應為「<strong>電腦與通訊工程</strong>」（依銘傳大學官方系網 <code>sites.google.com/view/mcuite</code> 為準）。</p>
+      <h3 class="case-phase">Action</h3>
+      <p class="case-body">使用者 review 時抓出、指認為「非常嚴重」（履歷的譯名錯誤直接衝擊信任）。當下：</p>
+      <ul>
+        <li><strong>修</strong>：resume.html 的譯名當下修正</li>
+        <li><strong>記</strong>：把教訓<strong>編碼</strong>進 <code>.claude/skills/resume-profile/references/anti-patterns.md</code> 的第 5 條鐵則</li>
+        <li><strong>鎖</strong>：commit <span class="commit-chip">8a1fc3a</span> 的 body 留完整紀錄</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 9 · Exhibit A pt2 · Governance (R + code) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">05 · Exhibit A · Result</div>
+      <h2>一次錯誤 → 一條鐵則 → 同類錯再也不犯</h2>
+      <div class="code-block">
+<span class="code-file">.claude/skills/resume-profile/references/anti-patterns.md</span><span class="code-comment"># 鐵則 5 · 專有名詞翻譯必須 Google 雙檢</span>
+<span class="code-comment"># 新增於 2026-04-18（銘傳譯名事件）</span>
+
+學校 / 系所 / 公司 / 產品的官方譯名：
+  <span class="code-key">- 不准自己推理</span>
+  <span class="code-key">- 必須 Google 雙檢</span>
+  <span class="code-key">- 若找不到官方譯名，標註「未驗證」而非自信輸出</span>
+
+<span class="code-comment"># 理由：履歷的譯名錯誤直接衝擊信任，</span>
+<span class="code-comment"># 這不是格式問題是可信度問題。</span></div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-600); font-size: clamp(0.95rem, 1.4vw, 1.15rem);">這條規則從這一刻起，<strong>任何 resume-profile 產出都會遵守</strong>。這就是 governance loop：錯誤不只被修，還被系統記得。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 10 · Exhibit B pt1 · Self-publish (S+A) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">06 · Exhibit B · Self-publish</div>
+      <h2>私 → 公單向管道的三層鎖</h2>
+      <h3 class="case-phase">Situation</h3>
+      <p class="case-body">個人 AI 產出天然需要分 public（可公開）和 private（email、未驗證數字、內部事件）。但手動切兩份會漂移 — 要一套機制「一份 source，兩份產出」。</p>
+      <h3 class="case-phase">Action</h3>
+      <p class="case-body">設計 <code>promote-to-showcase</code> skill，三層鎖：</p>
+      <div class="file-tree">outputs/resume/v0.2.0_.../resume.html
+  ├─ &lt;div class=<span class="marker">"private-only"</span>&gt;...&lt;/div&gt;  <span class="marker">← 層 1：私用 marker</span>
+  ├─ 「電話：0912-xxx-xxx」       <span class="marker">← 層 2：欄位過濾（email/tel 等）</span>
+  └─ &lt;!-- sync-marker: ZH-... --&gt;  <span class="marker">← 層 3：internal comment 移除</span>
+
+public-showcase/resume/index.html  <span class="marker">← 自動重生，永遠不可能帶回私內容</span></div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 11 · Exhibit B pt2 · Self-publish (R) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">06 · Exhibit B · Result</div>
+      <h2>一個 skill 啟動，兩個 repo 同步完成</h2>
+      <ul style="margin-top: 0.5rem;">
+        <li><strong>單向</strong>：只做私 → 公，絕不反向 pull back（避免公開端污染私源頭）</li>
+        <li><strong>顯式</strong>：每次要人**明確指名**哪個 output，絕不自動 promote 全部</li>
+        <li><strong>可追</strong>：commit + push 都在 destination repo 留紀錄</li>
+      </ul>
+      <p style="margin-top: 1rem; font-family: var(--font-mono); color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1rem);">
+        <span class="commit-chip">9ed8654</span> skill 本身 ·
+        <span class="commit-chip">b3a4f72</span> landing markers 改造 ·
+        <span class="commit-chip">f487378</span> 首次 promote 驗證
+      </p>
+      <p style="margin-top: 1rem; color: var(--color-neutral-600); font-size: clamp(0.95rem, 1.4vw, 1.15rem);">
+        <strong>能直接套用的原則</strong>：凡是要分公開／私用的系統，把 filter 做在發布管道而不是 source。Source 保持完整，發布端做節制 — 這比「維護兩份 source」穩定太多。
+      </p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 12 · Exhibit C pt1 · Identity (S+A) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">07 · Exhibit C · Identity</div>
+      <h2>個人身份 · 信任成本壓力測試</h2>
+      <h3 class="case-phase">Situation</h3>
+      <p class="case-body">resume / LinkedIn 是任何內容系統最嚴苛的壓力測試 — 訊息一旦錯誤，信任成本是<strong>實質的職涯傷害</strong>，不是重跑一次就解決。</p>
+      <h3 class="case-phase">Action</h3>
+      <p class="case-body">為 <code>resume-profile</code> skill 加上三層支撐：</p>
+      <ul>
+        <li><code>inputs/resume/linkedin/</code> 放 PDF snapshot 作為 LinkedIn 現況基準</li>
+        <li><strong>LinkedIn refresh / rebrand</strong> 雙模式指南（例行維護 vs 策略重塑）</li>
+        <li><strong>interview-material 保留機制</strong>：訪談原始資料永遠不刪，歷次履歷都能追溯回原話</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 13 · Exhibit C pt2 · Identity (R) ========= -->
+  <section class="slide slide--case">
+    <div class="slide-inner">
+      <div class="eyebrow">07 · Exhibit C · Result</div>
+      <h2>支援「延後執行」 · 信任敏感系統的共通需求</h2>
+      <p style="margin-top: 0.5rem;">使用者明確要求「延後執行 LinkedIn rebrand」時，系統不強迫現在做完。</p>
+      <div class="code-block">
+<span class="code-file">resume-profile · Step 6 · 詢問是否產出 LinkedIn 更新指南</span>
+<span class="code-key">refresh</span>  — 例行維護（微調文字、補新專案）
+<span class="code-key">rebrand</span>  — 策略性重塑（重新定位個人品牌）
+<span class="code-key">skip</span>     — 本次不需要（<span class="code-comment">可於日後再觸發，LinkedIn snapshot 仍保留</span>）</div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-600); font-size: clamp(0.95rem, 1.4vw, 1.15rem);">
+        <strong>deferred execution</strong> 是任何處理「信任敏感」內容的系統都該內建的機制：讓使用者有決定「現在不做」的權利，而不是被系統推著跑。
+      </p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 14 · Callout · Pull quote ========= -->
+  <section class="slide">
+    <div class="slide-inner" style="justify-content: center;">
+      <div class="eyebrow">Reflection</div>
+      <div class="pull-quote">
+        The page publishing this story<br>
+        is itself an artifact<br>
+        of that story.
+      </div>
+      <div class="pull-source">— claude-present showcase v2, hero section</div>
+      <p style="margin-top: 1.8rem; color: var(--color-neutral-600); font-size: clamp(1rem, 1.5vw, 1.3rem); max-width: 80%;">
+        敘述自己的那份頁面，本身就是那個敘述的證物。不是 meta 耍酷 — 是「系統能不能自我證明」的具體展示。
+      </p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 15 · Timeline ========= -->
+  <section class="slide slide--timeline">
+    <div class="slide-inner">
+      <div class="eyebrow">08 · Timeline</div>
+      <h2>v1 → v2 narrative pivot · 一天內發生</h2>
+      <svg class="timeline-svg" viewBox="0 0 1400 240" xmlns="http://www.w3.org/2000/svg" aria-label="v1 to v2 timeline">
+        <line x1="50" y1="140" x2="1350" y2="140" stroke="#E4E4E7" stroke-width="2"/>
+        <g font-family="JetBrains Mono, monospace" font-size="14" fill="#52525B">
+          <!-- Node 1 · v1 showcase（labels below） -->
+          <circle cx="140" cy="140" r="8" fill="#A1A1AA"/>
+          <text x="140" y="175" text-anchor="middle" font-weight="600" fill="#3F3F46">v1 showcase</text>
+          <text x="140" y="198" text-anchor="middle">早上 · drift framing</text>
+
+          <!-- Node 2 · 譯名事件（labels above） -->
+          <circle cx="420" cy="140" r="8" fill="#FB7185"/>
+          <text x="420" y="70" text-anchor="middle" font-weight="600" fill="#E11D48">譯名事件</text>
+          <text x="420" y="93" text-anchor="middle">首用 · 使用者抓錯</text>
+          <text x="420" y="114" text-anchor="middle" fill="#A1A1AA">8a1fc3a</text>
+
+          <!-- Node 3 · promote skill（labels below） -->
+          <circle cx="700" cy="140" r="8" fill="#FB7185"/>
+          <text x="700" y="175" text-anchor="middle" font-weight="600" fill="#E11D48">promote skill</text>
+          <text x="700" y="198" text-anchor="middle">兩 repo 單向 sync</text>
+          <text x="700" y="219" text-anchor="middle" fill="#A1A1AA">9ed8654</text>
+
+          <!-- Node 4 · interview-deck（labels above） -->
+          <circle cx="980" cy="140" r="8" fill="#FB7185"/>
+          <text x="980" y="70" text-anchor="middle" font-weight="600" fill="#E11D48">interview-deck</text>
+          <text x="980" y="93" text-anchor="middle">ZH + EN 雙語上線</text>
+          <text x="980" y="114" text-anchor="middle" fill="#A1A1AA">3b3139b</text>
+
+          <!-- Node 5 · v2 showcase（labels below、emphasized） -->
+          <circle cx="1260" cy="140" r="10" fill="#E11D48" stroke="#FFF1F2" stroke-width="3"/>
+          <text x="1260" y="175" text-anchor="middle" font-weight="700" fill="#E11D48">v2 showcase</text>
+          <text x="1260" y="198" text-anchor="middle">narrative pivot 落地</text>
+          <text x="1260" y="219" text-anchor="middle" fill="#A1A1AA">1324aa7</text>
+        </g>
+      </svg>
+      <div class="tl-legend">
+        <span>● 中性 = 靜態里程碑</span>
+        <span style="color: var(--color-accent-600);">● 珊瑚色 = 治理事件（錯誤 / 修正 / 編碼）</span>
+      </div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem);">一天 · 4 個觸發事件 · 系統從「設計一套規則」長成「規則能自我補強」。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 16 · Proof ========= -->
+  <section class="slide slide--proof">
+    <div class="slide-inner">
+      <div class="eyebrow">09 · Proof</div>
+      <h2>這份 deck 本身就是系統的產物</h2>
+      <p class="proof-line">
+        你現在看的這 18 張投影片 ——<br>
+        是 <strong>internal-presentation skill</strong> 照著 <code>scenario-profiles/workshop-hybrid.md</code> 匹配、<br>
+        讀 <code>examples/</code> 的 gold standard，產出的 artifact。
+      </p>
+      <p class="proof-line" style="margin-top: 1rem;">
+        內容來自一份 scroll-showcase 的改寫，不是從零憑空想出來的。
+      </p>
+      <div class="proof-path">outputs/presentations/2026-04-19_claude-present-showcase-deck/</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 17 · Takeaway ========= -->
+  <section class="slide slide--takeaway">
+    <div class="slide-inner">
+      <div class="eyebrow" style="color: var(--color-accent-500);">Takeaway</div>
+      <div class="punch">Maturity 不是 output 量 ——<br>是 <em>governance loops</em>。</div>
+      <ul class="observations">
+        <li><strong>01 —</strong> 系統能產多少，不如系統自己發現錯誤後能記得多少</li>
+        <li><strong>02 —</strong> 編碼規則比產出規則更值錢，因為前者讓未來不再犯同類錯</li>
+        <li><strong>03 —</strong> 能自己發布自己的系統，比被動等人手動更新的系統多活 10 年</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 18 · Closing / Q&A ========= -->
+  <section class="slide slide--closing">
+    <div class="slide-inner">
+      <div class="eyebrow">10 · Q&amp;A</div>
+      <h2>我想丟回來問你們</h2>
+      <ul class="questions">
+        <li>你們團隊有哪個系統 live 之後，錯誤被發現卻沒被編碼進規則？</li>
+        <li>Source-of-truth 跟發布端的 filter，你們是哪一邊在節制？</li>
+        <li>如果明天要加一個「deferred execution」給現有系統，第一個改哪裡？</li>
+      </ul>
+      <div class="footer-meta">sunmerandone.github.io &nbsp;·&nbsp; 原始 scroll 版本見 <code>outputs/presentations/2026-04-18_claude-present-showcase-v2/</code></div>
+    </div>
+  </section>
+
+</div>
+
+<button class="nav-btn nav-prev" id="navPrev" aria-label="上一頁" title="上一頁（← 鍵 / 右鍵 / 滾輪向上）">‹</button>
+<button class="nav-btn nav-next" id="navNext" aria-label="下一頁" title="下一頁（→ 鍵 / 點擊 / 滾輪向下）">›</button>
+
+<div class="counter" id="counter">1 / 18</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let idx = 0;
+  const counter = document.getElementById('counter');
+  const progressFill = document.getElementById('progressFill');
+  const navPrev = document.getElementById('navPrev');
+  const navNext = document.getElementById('navNext');
+
+  function fitSlide(slide) {
+    const inner = slide.querySelector('.slide-inner');
+    if (!inner) return;
+    inner.style.transform = '';
+    const contentH = inner.scrollHeight;
+    const containerH = slide.clientHeight;
+    if (contentH > containerH) {
+      const ratio = containerH / contentH;
+      inner.style.transform = `scale(${ratio})`;
+    }
+  }
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = `${idx + 1} / ${total}`;
+    progressFill.style.width = `${((idx + 1) / total) * 100}%`;
+    requestAnimationFrame(() => fitSlide(slides[idx]));
+    navPrev.disabled = (idx === 0);
+    navNext.disabled = (idx === total - 1);
+  }
+  function next() { if (idx < total - 1) { idx++; render(); } }
+  function prev() { if (idx > 0)         { idx--; render(); } }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') { idx = 0; render(); }
+    else if (e.key === 'End')  { idx = total - 1; render(); }
+    else if (e.key === 'f')    { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  });
+
+  // ---------- Mouse: left-click advances, right-click goes back ----------
+  document.getElementById('deck').addEventListener('click', next);
+  document.addEventListener('contextmenu', (e) => { e.preventDefault(); prev(); });
+
+  // ---------- Wheel: one firm scroll = one page (throttled) ----------
+  let wheelLock = false;
+  document.addEventListener('wheel', (e) => {
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 10) return;
+    wheelLock = true;
+    setTimeout(() => { wheelLock = false; }, 500);
+    if (e.deltaY > 0) next(); else prev();
+  }, { passive: true });
+
+  // ---------- On-screen nav buttons ----------
+  navPrev.addEventListener('click', (e) => { e.stopPropagation(); prev(); });
+  navNext.addEventListener('click', (e) => { e.stopPropagation(); next(); });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => fitSlide(slides[idx]), 100);
+  });
+
+  render();
+</script>
+
+</body>
+</html>
