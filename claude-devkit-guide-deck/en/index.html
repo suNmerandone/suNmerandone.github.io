@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>claude-devkit · Deep-Dive Guide (Deck)</title>
+  <meta name="description" content="claude-devkit as a 19-slide keyboard deck — Claude Code cross-project plugin for PR scoring and plan-document synthesis.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-neutral-50:  #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-300: #D4D4D8;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-800: #27272A;
+      --color-neutral-900: #18181B;
+      --color-neutral-950: #0A0A0A;
+      --color-accent-50:  #FFF1F2;
+      --color-accent-300: #FDA4AF;
+      --color-accent-500: #FB7185;
+      --color-accent-600: #E11D48;
+      --color-accent-700: #BE123C;
+      --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { font-family: var(--font-sans); background: var(--color-neutral-950); overflow: hidden; }
+
+    .deck { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+    .slide {
+      width: min(96vw, calc(96vh * 16 / 9));
+      height: min(96vh, calc(96vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      background: var(--color-neutral-50);
+      display: none;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      border-radius: 4px;
+    }
+    .slide.active { display: block; }
+    .slide-inner {
+      position: absolute; inset: 0;
+      padding: 3.5rem 4.5rem;
+      display: flex; flex-direction: column; justify-content: flex-start;
+      transform-origin: top left;
+    }
+    /* Critical: default flex-shrink: 1 squeezes oversized children (e.g. code-block).
+       Combined with overflow: hidden on code-block, content gets clipped INSIDE
+       code-block while scrollHeight lies that there's no overflow. Disable shrink
+       so scrollHeight reflects true content size and fitSlide's scale can work. */
+    .slide-inner > * { flex-shrink: 0; }
+
+    .slide h1 { font-size: clamp(2.6rem, 6vw, 4.8rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 1.2rem 0; color: var(--color-neutral-900); }
+    .slide h2 { font-size: clamp(1.7rem, 3.8vw, 2.7rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 1rem 0; color: var(--color-neutral-900); }
+    .slide h3 { font-size: clamp(1.15rem, 2vw, 1.5rem); color: var(--color-neutral-600); font-weight: 500; margin: 0 0 0.8rem 0; }
+    .slide p, .slide li { font-size: clamp(1rem, 1.45vw, 1.35rem); line-height: 1.7; color: var(--color-neutral-700); }
+    .slide p { margin: 0.5rem 0; }
+    .slide ul { padding-left: 1.2em; margin: 0.5rem 0; }
+    .slide ul li { padding: 0.4rem 0; }
+    .slide strong { color: var(--color-neutral-900); font-weight: 600; }
+    .slide code { font-family: var(--font-mono); font-size: 0.92em; background: var(--color-neutral-100); padding: 0.1em 0.4em; border-radius: 3px; color: var(--color-accent-700); }
+
+    .eyebrow { font-family: var(--font-mono); font-size: clamp(0.8rem, 1.05vw, 1rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-700); margin-bottom: 0.9rem; }
+
+    .slide--cover { background: var(--color-neutral-50); }
+    .slide--cover .slide-inner { justify-content: center; }
+    .slide--cover h1 { font-size: clamp(3rem, 7.5vw, 5.5rem); }
+    .slide--cover .sub { font-size: clamp(1.3rem, 2.2vw, 1.8rem); color: var(--color-neutral-600); margin-top: 0.5rem; line-height: 1.5; }
+    .slide--cover .meta { margin-top: auto; display: flex; justify-content: space-between; font-family: var(--font-mono); color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1.05rem); }
+
+    .slide--framing .slide-inner { justify-content: center; }
+    .slide--framing .lead { font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: var(--color-neutral-500); margin: 0.8rem 0; line-height: 1.5; }
+    .slide--framing .lead--pivot { color: var(--color-neutral-900); font-weight: 600; }
+
+    .slide--kpi .slide-inner { justify-content: center; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; margin-top: 1.2rem; }
+    .kpi-item { text-align: left; }
+    .kpi-value { font-size: clamp(2.8rem, 7vw, 5rem); font-weight: 700; letter-spacing: -0.04em; line-height: 1; color: var(--color-neutral-900); }
+    .kpi-value .unit { font-family: var(--font-mono); font-size: 0.3em; color: var(--color-accent-700); margin-left: 0.15em; letter-spacing: 0.02em; }
+    .kpi-label { margin-top: 0.9rem; font-size: clamp(0.8rem, 1.2vw, 1rem); color: var(--color-neutral-600); line-height: 1.6; }
+    .kpi-footer { margin-top: 1.5rem; font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); color: var(--color-neutral-500); letter-spacing: 0.05em; }
+
+    .slide--divider { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--divider .slide-inner { justify-content: center; padding: 3.5rem 5rem; }
+    .slide--divider .divider-num { font-family: var(--font-mono); font-size: clamp(0.9rem, 1.3vw, 1.15rem); letter-spacing: 0.15em; text-transform: uppercase; color: var(--color-accent-500); margin-bottom: 1.4rem; }
+    .slide--divider h1 { color: var(--color-neutral-50); font-size: clamp(3rem, 7vw, 5.5rem); margin: 0; line-height: 1; }
+    .slide--divider .divider-sub { margin-top: 1.4rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: clamp(0.95rem, 1.4vw, 1.15rem); letter-spacing: 0.05em; }
+
+    .code-block { background: var(--color-neutral-900); color: var(--color-neutral-200); padding: 1rem 1.3rem; border-radius: 6px; font-family: var(--font-mono); font-size: clamp(0.8rem, 1.1vw, 1rem); line-height: 1.65; margin: 0.8rem 0; overflow: hidden; border-left: 4px solid var(--color-accent-500); white-space: pre-wrap; }
+    .code-block .code-comment { color: var(--color-neutral-500); }
+    .code-block .code-key { color: var(--color-accent-300); }
+    .code-block .code-file { color: var(--color-neutral-400); font-size: 0.88em; margin-bottom: 0.5rem; display: block; letter-spacing: 0.05em; }
+
+    .compare-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 0.8rem; }
+    .compare-col { padding: 1.1rem 1.3rem; border-radius: 6px; background: var(--color-neutral-100); border: 1px solid var(--color-neutral-200); }
+    .compare-col.accent { background: var(--color-accent-50); border-color: var(--color-accent-300); }
+    .compare-head { margin-bottom: 0.6rem; }
+    .compare-tag { font-family: var(--font-mono); font-size: 0.85em; color: var(--color-neutral-600); background: var(--color-neutral-50); padding: 0.2em 0.6em; border-radius: 3px; border: 1px solid var(--color-neutral-200); }
+    .compare-col.accent .compare-tag { color: var(--color-accent-700); background: #fff; border-color: var(--color-accent-300); }
+    .compare-note { color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1rem); margin-top: 0.4rem; }
+    .weight-list { list-style: none; padding: 0; margin: 0.5rem 0 0 0; font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); }
+    .weight-list li { display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px dashed var(--color-neutral-200); }
+    .weight-list li:last-child { border-bottom: 0; }
+    .weight-list .dim { color: var(--color-neutral-700); }
+    .weight-list .wt { color: var(--color-neutral-500); }
+    .weight-list .wt.up { color: var(--color-accent-700); font-weight: 600; }
+
+    .src-list { list-style: none; padding: 0; margin: 0.8rem 0 0 0; }
+    .src-list li { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 1rem; align-items: baseline; padding: 0.55rem 0; border-bottom: 1px dashed var(--color-neutral-200); }
+    .src-list li:last-child { border-bottom: 0; }
+    .src-list .src-name { font-weight: 600; color: var(--color-neutral-900); }
+    .src-list .src-flag { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-accent-700); }
+    .src-list .src-dep { color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1rem); }
+
+    .callout-accent { background: var(--color-accent-50); border-left: 5px solid var(--color-accent-500); padding: 1rem 1.3rem; margin: 0.9rem 0; border-radius: 0 6px 6px 0; }
+    .callout-accent p { margin: 0; font-size: clamp(1.15rem, 1.8vw, 1.5rem); color: var(--color-neutral-900); font-weight: 500; }
+
+    .slide--takeaway { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--takeaway .slide-inner { justify-content: center; }
+    .slide--takeaway .punch { font-size: clamp(2rem, 4.2vw, 3.2rem); font-weight: 700; color: var(--color-neutral-50); line-height: 1.25; margin: 0 0 1.5rem 0; letter-spacing: -0.02em; }
+    .slide--takeaway .punch em { color: var(--color-accent-500); font-style: normal; }
+    .slide--takeaway .observations { border-top: 1px solid var(--color-neutral-700); padding-top: 1.2rem; margin-top: 0.8rem; list-style: none; padding-left: 0; }
+    .slide--takeaway .observations li { color: var(--color-neutral-300); padding: 0.5rem 0; font-size: clamp(1rem, 1.5vw, 1.3rem); padding-left: 0; }
+    .slide--takeaway .observations li strong { color: var(--color-accent-500); }
+
+    .slide--closing { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--closing .slide-inner { justify-content: center; }
+    .slide--closing h2 { color: var(--color-neutral-50); font-size: clamp(2.6rem, 5.5vw, 4rem); }
+    .slide--closing .cta-list { margin-top: 1.5rem; list-style: none; padding: 0; }
+    .slide--closing .cta-list li { position: relative; padding: 0.4rem 0 0.4rem 2rem; color: var(--color-neutral-300); font-size: clamp(1.05rem, 1.6vw, 1.4rem); }
+    .slide--closing .cta-list li::before { content: "→"; position: absolute; left: 0; color: var(--color-accent-500); font-weight: 600; }
+    .slide--closing .cta-list code { background: var(--color-neutral-800); color: var(--color-accent-300); }
+    .slide--closing .footer-meta { margin-top: 2rem; font-family: var(--font-mono); font-size: clamp(0.82rem, 1.15vw, 1rem); color: var(--color-neutral-400); letter-spacing: 0.05em; }
+
+    .counter { position: fixed; right: 1rem; bottom: 0.75rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.05em; z-index: 5; user-select: none; }
+    .progress { position: fixed; left: 0; top: 0; right: 0; height: 3px; z-index: 6; }
+    .progress-fill { height: 100%; background: var(--color-accent-500); width: 0; transition: width 200ms ease; }
+
+    .nav-btn { position: fixed; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: 0; font-size: 1.4rem; cursor: pointer; opacity: 0; transition: opacity 200ms ease, background 200ms ease; z-index: 7; user-select: none; display: flex; align-items: center; justify-content: center; line-height: 1; font-family: var(--font-sans); }
+    .nav-btn:hover { background: rgba(0,0,0,0.55); opacity: 1; }
+    .nav-btn:focus-visible { outline: 3px solid var(--color-accent-500); outline-offset: 3px; opacity: 1; }
+    .nav-btn:disabled { opacity: 0.15 !important; cursor: not-allowed; }
+    body:hover .nav-btn { opacity: 0.5; }
+    .nav-prev { left: 0.75rem; }
+    .nav-next { right: 0.75rem; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+
+    @media print {
+      body { overflow: visible; background: white; }
+      .deck { position: static; display: block; }
+      .slide { display: block !important; page-break-after: always; box-shadow: none; border-radius: 0; width: 100%; height: 100vh; }
+      .counter, .progress, .nav-btn { display: none !important; }
+      @page { size: landscape; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="deck" id="deck">
+
+  <!-- Slide 1 · Cover -->
+  <section class="slide slide--cover active">
+    <div class="slide-inner">
+      <div class="eyebrow">Toolkit Deep Dive · 2026</div>
+      <h1>claude-devkit</h1>
+      <div class="sub">A Claude Code cross-project plugin that takes <strong>two high-frequency scenarios</strong> all the way — PR scoring and plan-document synthesis.</div>
+      <div class="meta">
+        <span>v0.4.2 · MIT · sunmerandone/claude-devkit</span>
+        <time datetime="2026-04-19">2026-04-19</time>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 2 · Framing -->
+  <section class="slide slide--framing">
+    <div class="slide-inner">
+      <div class="eyebrow">Framing</div>
+      <h2>Not trying to be everything</h2>
+      <p class="lead">Two skills (<code>/devkit:score-pr</code>, <code>/devkit:plan-writer</code>) — both aimed at <strong>the decision points developers hit most often</strong>.</p>
+      <p class="lead lead--pivot">The structure itself concedes "there is no silver bullet" — one rubric, five swappable weight profiles to match different engineering cultures.</p>
+    </div>
+  </section>
+
+  <!-- Slide 3 · KPI -->
+  <section class="slide slide--kpi">
+    <div class="slide-inner">
+      <div class="eyebrow">01 · At a glance</div>
+      <h2 style="font-size: clamp(1.5rem, 3vw, 2.2rem);">Four design decisions on one card</h2>
+      <div class="kpi-grid">
+        <div class="kpi-item">
+          <div class="kpi-value">2<span class="unit">skills</span></div>
+          <div class="kpi-label">score-pr · plan-writer</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">5<span class="unit">profiles</span></div>
+          <div class="kpi-label">swappable weightings (rubric stays fixed)</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">7<span class="unit">dims</span></div>
+          <div class="kpi-label">scoring dimensions (shared by all profiles)</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">3<span class="unit">tmpl</span></div>
+          <div class="kpi-label">planning-doc templates</div>
+        </div>
+      </div>
+      <div class="kpi-footer">v0.4.2 · MIT · bilingual docs (ZH + EN) · standalone prompt fallback for non-Claude-Code users</div>
+    </div>
+  </section>
+
+  <!-- Slide 4 · Section I Divider -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section I · Install & onboard</div>
+      <h1>Three commands<br>to get rolling</h1>
+      <div class="divider-sub">marketplace add &nbsp;·&nbsp; plugin install &nbsp;·&nbsp; run</div>
+    </div>
+  </section>
+
+  <!-- Slide 5 · Install -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">02 · Install</div>
+      <h2>Three commands · user scope by default</h2>
+      <div class="code-block">
+<span class="code-file"># Prereq: Claude Code CLI installed, gh auth login done</span>
+/plugin marketplace add <span class="code-key">suNmerandone/claude-devkit</span>
+/plugin install <span class="code-key">devkit@suNmerandone-claude-devkit</span>
+/devkit:score-pr</div>
+      <p>Writes to <code>~/.claude/</code> — available in every project, <strong>contaminates no repo</strong>.</p>
+      <p style="color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem);">For team-wide use → <code>--scope project</code> (writes to <code>.claude/settings.json</code>). For project-local private → <code>--scope local</code> (gitignored).</p>
+    </div>
+  </section>
+
+  <!-- Slide 6 · Update -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">03 · Update · Scope</div>
+      <h2>Three lines to update & scope decisions</h2>
+      <div class="code-block">
+<span class="code-comment"># Update:</span>
+/plugin marketplace update
+/plugin update
+/reload-plugins</div>
+      <h3 style="margin-top: 1rem;">Quick scope picker</h3>
+      <ul>
+        <li><strong>user</strong> (default) — personal use, across all projects</li>
+        <li><strong>project</strong> — team shared, written to <code>.claude/settings.json</code></li>
+        <li><strong>local</strong> — this project only, gitignored, self only</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Slide 7 · Section II Divider -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section II · Tool A</div>
+      <h1>/devkit:score-pr<br>PR quality grading</h1>
+      <div class="divider-sub">A / B+ / B- / C / D &nbsp;·&nbsp; categorized action list</div>
+    </div>
+  </section>
+
+  <!-- Slide 8 · score-pr overview -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">04 · score-pr · overview</div>
+      <h2>Two invocation modes: interactive vs direct</h2>
+      <div class="code-block">
+<span class="code-comment"># Interactive — recommended for new users, asks 4 questions</span>
+/devkit:score-pr
+
+<span class="code-comment"># Direct — with flags</span>
+/devkit:score-pr develop --ensemble --profile brownfield --lang en</div>
+      <div class="callout-accent">
+        <p>Interactive runs end with a <strong>print of the equivalent direct-mode command</strong> — copy it next time to skip the interaction. A deliberate learning curve design.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 9 · Profile decision tree -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">05 · Profile decision tree</div>
+      <h2>How to pick between 5 profiles</h2>
+      <div class="code-block" style="font-size: clamp(0.9rem, 1.3vw, 1.15rem);">
+Legacy / brownfield project?
+├─ Yes → <span class="code-key">brownfield</span>
+└─ No →
+    High-risk domain (medical / finance / aviation / drivers)?
+    ├─ Yes → <span class="code-key">safety-critical</span>
+    └─ No →
+        MVP / POC stage?
+        ├─ Yes → <span class="code-key">fast-iteration</span>
+        └─ No →
+            Strict TDD culture, high coverage required?
+            ├─ Yes → <span class="code-key">test-driven</span>
+            └─ No → <span class="code-key">default</span></div>
+      <p style="color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem); margin-top: 0.8rem;">All profiles use <strong>identical scoring criteria and grade thresholds</strong> — only the 7-dimension weighting differs.</p>
+    </div>
+  </section>
+
+  <!-- Slide 10 · Default vs Brownfield -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">06 · Default vs Brownfield</div>
+      <h2>The two most-swapped weightings</h2>
+      <div class="compare-cols">
+        <div class="compare-col">
+          <div class="compare-head">
+            <span class="compare-tag">default</span>
+            <div class="compare-note">balanced · mature tests, non-legacy</div>
+          </div>
+          <ul class="weight-list">
+            <li><span class="dim">Correctness</span><span class="wt">25%</span></li>
+            <li><span class="dim">Test coverage</span><span class="wt">20%</span></li>
+            <li><span class="dim">Backward compat</span><span class="wt">15%</span></li>
+            <li><span class="dim">Defensive code</span><span class="wt">15%</span></li>
+            <li><span class="dim">Maintainability</span><span class="wt">10%</span></li>
+            <li><span class="dim">Change risk</span><span class="wt">10%</span></li>
+            <li><span class="dim">Code quality</span><span class="wt">5%</span></li>
+          </ul>
+        </div>
+        <div class="compare-col accent">
+          <div class="compare-head">
+            <span class="compare-tag">brownfield</span>
+            <div class="compare-note">legacy-heavy · tests down, compat up</div>
+          </div>
+          <ul class="weight-list">
+            <li><span class="dim">Correctness</span><span class="wt">25%</span></li>
+            <li><span class="dim">Test coverage</span><span class="wt">10%</span></li>
+            <li><span class="dim">Backward compat</span><span class="wt up">20%</span></li>
+            <li><span class="dim">Defensive code</span><span class="wt">15%</span></li>
+            <li><span class="dim">Maintainability</span><span class="wt">10%</span></li>
+            <li><span class="dim">Change risk</span><span class="wt up">15%</span></li>
+            <li><span class="dim">Code quality</span><span class="wt">5%</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 11 · Ensemble mode -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">07 · Ensemble mode</div>
+      <h2>Offsetting LLM randomness<br>with a statistical layer</h2>
+      <p><code>--ensemble</code> fires <strong>3 independent subagents</strong>, takes the mode as the final grade, and labels "agreement: high / medium".</p>
+      <ul>
+        <li><strong>When</strong>: release review · suspecting single-run variance · first-time baseline on a new project</li>
+        <li><strong>Cost</strong>: 3× execution time, higher token consumption</li>
+        <li><strong>Daily</strong>: single mode is fine</li>
+      </ul>
+      <div class="callout-accent">
+        <p>Applying <strong>ensemble learning</strong> (ML concept) to a daily engineering tool. This kind of cross-domain analogy is the senior → staff watershed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide 12 · Section III Divider -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section III · Tool B</div>
+      <h1>/devkit:plan-writer<br>Plan synthesis</h1>
+      <div class="divider-sub">Ticket &nbsp;·&nbsp; Confluence &nbsp;·&nbsp; PR &nbsp;·&nbsp; manual → structured plan</div>
+    </div>
+  </section>
+
+  <!-- Slide 13 · plan-writer sources -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">08 · plan-writer · four sources</div>
+      <h2>Four sources, mixable</h2>
+      <ul class="src-list">
+        <li>
+          <span class="src-name">Azure DevOps Ticket</span>
+          <span class="src-flag"><code>--ticket AB#12345</code></span>
+          <span class="src-dep">Azure DevOps MCP</span>
+        </li>
+        <li>
+          <span class="src-name">Jira Ticket</span>
+          <span class="src-flag"><code>--ticket PROJ-123</code></span>
+          <span class="src-dep">Confluence MCP (inc. Jira)</span>
+        </li>
+        <li>
+          <span class="src-name">Confluence page</span>
+          <span class="src-flag"><code>--confluence &lt;url&gt;</code></span>
+          <span class="src-dep">Confluence MCP</span>
+        </li>
+        <li>
+          <span class="src-name">GitHub PR / branch</span>
+          <span class="src-flag"><code>--pr &lt;url&gt;</code></span>
+          <span class="src-dep">gh CLI</span>
+        </li>
+        <li>
+          <span class="src-name">Manual description</span>
+          <span class="src-flag"><code>--desc "..."</code></span>
+          <span class="src-dep">no dependency</span>
+        </li>
+      </ul>
+      <p style="color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem);">plan-writer itself <strong>binds to no MCP</strong> — it reuses your existing Claude Code environment. Missing MCPs are flagged "unavailable"; the plan composes from what's available.</p>
+    </div>
+  </section>
+
+  <!-- Slide 14 · Templates + Modes -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">09 · Templates · Modes</div>
+      <h2>Three templates × three modes</h2>
+      <ul>
+        <li><code>generic</code> — Scope / Background / Requirements / Approach / Risks / Estimation</li>
+        <li><code>brownfield-plan</code> — adds Document History, Brownfield Considerations, 5.5h/day effort conversion</li>
+        <li><code>minimal</code> — Goal / Approach / Estimated Effort (for POCs)</li>
+      </ul>
+      <div class="code-block">
+<span class="code-comment"># Interactive — asks 5-6 questions</span>
+/devkit:plan-writer
+
+<span class="code-comment"># Hybrid — partial flags, asks only what's missing</span>
+/devkit:plan-writer --ticket AB#12345
+
+<span class="code-comment"># Direct — full flags, silent</span>
+/devkit:plan-writer --ticket AB#12345 --template brownfield-plan \
+                   --output doc/plan/MyFeature.md</div>
+    </div>
+  </section>
+
+  <!-- Slide 15 · plan-writer Boundary -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">10 · Boundary · what it won't do</div>
+      <h2>Planning tool, not execution tool</h2>
+      <div class="callout-accent">
+        <p><strong>Won't</strong> auto-create Jira subtasks · <strong>won't</strong> publish to Confluence · <strong>won't</strong> change ticket status · <strong>won't</strong> run any git operation (commit / push / branch switch).</p>
+      </div>
+      <p>These belong to <strong>domain-specific plugins</strong> — if your team needs that workflow, build a separate plugin (e.g. <code>acme-toolkit</code>) rather than mixing it into devkit.</p>
+      <h3 style="margin-top: 0.8rem;">Behaviour under missing data</h3>
+      <ul>
+        <li>Sections lacking material marked <code>&lt;TBD: what's missing&gt;</code></li>
+        <li>TBDs aggregated into a Metadata block at the file's end</li>
+        <li><strong>Never fabricates what isn't in the sources</strong></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Slide 16 · Section IV Divider -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section IV · Design principles</div>
+      <h1>What<br>shapes usage</h1>
+      <div class="divider-sub">SKILL.md / README.md split &nbsp;·&nbsp; Progressive Disclosure &nbsp;·&nbsp; CLAUDE.md injection</div>
+    </div>
+  </section>
+
+  <!-- Slide 17 · Design principles -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">11 · Four structural choices</div>
+      <h2>Worth understanding to use the tool well</h2>
+      <ul>
+        <li><strong>SKILL.md vs README.md split</strong> — SKILL.md is English (for Claude); README.md is Chinese (for humans). The two <strong>do not duplicate and do not cross-reference each other</strong>.</li>
+        <li><strong>Progressive Disclosure</strong> — SKILL.md ≤ 500 lines; detailed rules pulled into reference files (e.g. <code>rubric.md</code>) loaded on demand to avoid diluting the main prompt.</li>
+        <li><strong>Generic + CLAUDE.md injection</strong> — devkit hardcodes no project logic. Project specialisation is injected by reading the target repo's <code>.claude/CLAUDE.md</code> (score-pr implements this).</li>
+        <li><strong>Direct-mode hint</strong> — interactive and hybrid modes print the equivalent direct-mode command at the end; users learn by doing once, then skip interaction next time.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Slide 18 · Takeaway -->
+  <section class="slide slide--takeaway">
+    <div class="slide-inner">
+      <div class="eyebrow" style="color: var(--color-accent-500);">Takeaway</div>
+      <div class="punch">Not trying to be everything —<br>take <strong>two high-frequency scenarios</strong> all the way,<br>then use <em>profiles</em> to admit<br>there's no silver bullet.</div>
+      <ul class="observations">
+        <li><strong>01 —</strong> SKILL.md (machine-read) + README.md (human-read) split scales better than "one doc fits both"</li>
+        <li><strong>02 —</strong> Swappable profiles beat a hardcoded rubric for fitting multiple engineering cultures</li>
+        <li><strong>03 —</strong> Reading CLAUDE.md to inject specialisation lets a generic plugin adapt per-project without forking</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Slide 19 · Closing -->
+  <section class="slide slide--closing">
+    <div class="slide-inner">
+      <div class="eyebrow">12 · Next step</div>
+      <h2>Install it · try one run</h2>
+      <ul class="cta-list">
+        <li><code>/plugin marketplace add suNmerandone/claude-devkit</code></li>
+        <li>On your next PR → <code>/devkit:score-pr --ensemble</code></li>
+        <li>On your next plan doc → <code>/devkit:plan-writer --ticket &lt;your-ticket&gt;</code></li>
+      </ul>
+      <div class="footer-meta">v0.4.2 · MIT · original report: <code>sunmerandone.github.io/claude-devkit-guide/</code></div>
+    </div>
+  </section>
+
+</div>
+
+<button class="nav-btn nav-prev" id="navPrev" aria-label="Previous" title="Previous (← / right-click / wheel up)">‹</button>
+<button class="nav-btn nav-next" id="navNext" aria-label="Next" title="Next (→ / click / wheel down)">›</button>
+
+<div class="counter" id="counter" aria-live="polite" aria-atomic="true">1 / 19</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let idx = 0;
+  const counter = document.getElementById('counter');
+  const progressFill = document.getElementById('progressFill');
+  const navPrev = document.getElementById('navPrev');
+  const navNext = document.getElementById('navNext');
+
+  function fitSlide(slide) {
+    const inner = slide.querySelector('.slide-inner');
+    if (!inner) return;
+    inner.style.transform = '';
+    const contentH = inner.scrollHeight;
+    const containerH = slide.clientHeight;
+    // 16px safety buffer: absorbs DPI zoom (125%) + sub-pixel rounding + font-load error
+    // Original 4px insufficient for dense code-block slides (observed 15-20px overflow)
+    const SAFETY = 16;
+    if (contentH + SAFETY > containerH) {
+      const ratio = (containerH - SAFETY) / contentH;
+      inner.style.transform = `scale(${ratio})`;
+    }
+  }
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = `${idx + 1} / ${total}`;
+    progressFill.style.width = `${((idx + 1) / total) * 100}%`;
+    requestAnimationFrame(() => fitSlide(slides[idx]));
+    navPrev.disabled = (idx === 0);
+    navNext.disabled = (idx === total - 1);
+  }
+  function next() { if (idx < total - 1) { idx++; render(); } }
+  function prev() { if (idx > 0)         { idx--; render(); } }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') { idx = 0; render(); }
+    else if (e.key === 'End')  { idx = total - 1; render(); }
+    else if (e.key === 'f')    { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  });
+
+  document.getElementById('deck').addEventListener('click', next);
+  document.addEventListener('contextmenu', (e) => { e.preventDefault(); prev(); });
+
+  let wheelLock = false;
+  document.addEventListener('wheel', (e) => {
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 10) return;
+    wheelLock = true;
+    setTimeout(() => { wheelLock = false; }, 500);
+    if (e.deltaY > 0) next(); else prev();
+  }, { passive: true });
+
+  navPrev.addEventListener('click', (e) => { e.stopPropagation(); prev(); });
+  navNext.addEventListener('click', (e) => { e.stopPropagation(); next(); });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => fitSlide(slides[idx]), 100);
+  });
+
+  render();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => render());
+  }
+</script>
+
+</body>
+</html>

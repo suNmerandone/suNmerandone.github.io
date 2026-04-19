@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>claude-devkit · 使用深度指南（Deck）</title>
+  <meta name="description" content="claude-devkit 的 18 張翻頁 deck — Claude Code 跨專案開發輔助 plugin，PR 評分與規劃文件合成工具的核心使用指南。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-neutral-50:  #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-300: #D4D4D8;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-800: #27272A;
+      --color-neutral-900: #18181B;
+      --color-neutral-950: #0A0A0A;
+      --color-accent-50:  #FFF1F2;
+      --color-accent-300: #FDA4AF;
+      --color-accent-500: #FB7185;
+      --color-accent-600: #E11D48;
+      --color-accent-700: #BE123C;
+      --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { font-family: var(--font-sans); background: var(--color-neutral-950); overflow: hidden; }
+
+    .deck { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+    .slide {
+      width: min(96vw, calc(96vh * 16 / 9));
+      height: min(96vh, calc(96vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      background: var(--color-neutral-50);
+      display: none;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      border-radius: 4px;
+    }
+    .slide.active { display: block; }
+    .slide-inner {
+      position: absolute; inset: 0;
+      padding: 3.5rem 4.5rem;
+      display: flex; flex-direction: column; justify-content: flex-start;
+      transform-origin: top left;
+    }
+    /* 關鍵：flex 容器預設 flex-shrink: 1，會把 oversized 子元素（例 code-block）壓小，
+       配合 overflow: hidden 就造成「內容被裁但 scrollHeight 謊報無 overflow」。
+       禁用 shrink 讓 scrollHeight 正確反映真實內容、fitSlide 的 scale 才有用武之地。 */
+    .slide-inner > * { flex-shrink: 0; }
+
+    .slide h1 { font-size: clamp(2.6rem, 6vw, 4.8rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 1.2rem 0; color: var(--color-neutral-900); }
+    .slide h2 { font-size: clamp(1.7rem, 3.8vw, 2.7rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 1rem 0; color: var(--color-neutral-900); }
+    .slide h3 { font-size: clamp(1.15rem, 2vw, 1.5rem); color: var(--color-neutral-600); font-weight: 500; margin: 0 0 0.8rem 0; }
+    .slide p, .slide li { font-size: clamp(1rem, 1.45vw, 1.35rem); line-height: 1.7; color: var(--color-neutral-700); }
+    .slide p { margin: 0.5rem 0; }
+    .slide ul { padding-left: 1.2em; margin: 0.5rem 0; }
+    .slide ul li { padding: 0.4rem 0; }
+    .slide strong { color: var(--color-neutral-900); font-weight: 600; }
+    .slide code { font-family: var(--font-mono); font-size: 0.92em; background: var(--color-neutral-100); padding: 0.1em 0.4em; border-radius: 3px; color: var(--color-accent-700); }
+
+    .eyebrow { font-family: var(--font-mono); font-size: clamp(0.8rem, 1.05vw, 1rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-700); margin-bottom: 0.9rem; }
+
+    .slide--cover { background: var(--color-neutral-50); }
+    .slide--cover .slide-inner { justify-content: center; }
+    .slide--cover h1 { font-size: clamp(3rem, 7.5vw, 5.5rem); }
+    .slide--cover .sub { font-size: clamp(1.3rem, 2.2vw, 1.8rem); color: var(--color-neutral-600); margin-top: 0.5rem; line-height: 1.5; }
+    .slide--cover .meta { margin-top: auto; display: flex; justify-content: space-between; font-family: var(--font-mono); color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1.05rem); }
+
+    .slide--framing .slide-inner { justify-content: center; }
+    .slide--framing .lead { font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: var(--color-neutral-500); margin: 0.8rem 0; line-height: 1.5; }
+    .slide--framing .lead--pivot { color: var(--color-neutral-900); font-weight: 600; }
+
+    .slide--kpi .slide-inner { justify-content: center; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; margin-top: 1.2rem; }
+    .kpi-item { text-align: left; }
+    .kpi-value { font-size: clamp(2.8rem, 7vw, 5rem); font-weight: 700; letter-spacing: -0.04em; line-height: 1; color: var(--color-neutral-900); }
+    .kpi-value .unit { font-family: var(--font-mono); font-size: 0.3em; color: var(--color-accent-700); margin-left: 0.15em; letter-spacing: 0.02em; }
+    .kpi-label { margin-top: 0.9rem; font-size: clamp(0.8rem, 1.2vw, 1rem); color: var(--color-neutral-600); line-height: 1.6; }
+    .kpi-footer { margin-top: 1.5rem; font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); color: var(--color-neutral-500); letter-spacing: 0.05em; }
+
+    .slide--divider { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--divider .slide-inner { justify-content: center; padding: 3.5rem 5rem; }
+    .slide--divider .divider-num { font-family: var(--font-mono); font-size: clamp(0.9rem, 1.3vw, 1.15rem); letter-spacing: 0.15em; text-transform: uppercase; color: var(--color-accent-500); margin-bottom: 1.4rem; }
+    .slide--divider h1 { color: var(--color-neutral-50); font-size: clamp(3rem, 7vw, 5.5rem); margin: 0; line-height: 1; }
+    .slide--divider .divider-sub { margin-top: 1.4rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: clamp(0.95rem, 1.4vw, 1.15rem); letter-spacing: 0.05em; }
+
+    .code-block { background: var(--color-neutral-900); color: var(--color-neutral-200); padding: 1rem 1.3rem; border-radius: 6px; font-family: var(--font-mono); font-size: clamp(0.8rem, 1.1vw, 1rem); line-height: 1.65; margin: 0.8rem 0; overflow: hidden; border-left: 4px solid var(--color-accent-500); white-space: pre-wrap; }
+    .code-block .code-comment { color: var(--color-neutral-500); }
+    .code-block .code-key { color: var(--color-accent-300); }
+    .code-block .code-file { color: var(--color-neutral-400); font-size: 0.88em; margin-bottom: 0.5rem; display: block; letter-spacing: 0.05em; }
+
+    .compare-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 0.8rem; }
+    .compare-col { padding: 1.1rem 1.3rem; border-radius: 6px; background: var(--color-neutral-100); border: 1px solid var(--color-neutral-200); }
+    .compare-col.accent { background: var(--color-accent-50); border-color: var(--color-accent-300); }
+    .compare-head { margin-bottom: 0.6rem; }
+    .compare-tag { font-family: var(--font-mono); font-size: 0.85em; color: var(--color-neutral-600); background: var(--color-neutral-50); padding: 0.2em 0.6em; border-radius: 3px; border: 1px solid var(--color-neutral-200); }
+    .compare-col.accent .compare-tag { color: var(--color-accent-700); background: #fff; border-color: var(--color-accent-300); }
+    .compare-note { color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1rem); margin-top: 0.4rem; }
+    .weight-list { list-style: none; padding: 0; margin: 0.5rem 0 0 0; font-family: var(--font-mono); font-size: clamp(0.85rem, 1.2vw, 1rem); }
+    .weight-list li { display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px dashed var(--color-neutral-200); }
+    .weight-list li:last-child { border-bottom: 0; }
+    .weight-list .dim { color: var(--color-neutral-700); }
+    .weight-list .wt { color: var(--color-neutral-500); }
+    .weight-list .wt.up { color: var(--color-accent-700); font-weight: 600; }
+
+    .src-list { list-style: none; padding: 0; margin: 0.8rem 0 0 0; }
+    .src-list li { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 1rem; align-items: baseline; padding: 0.55rem 0; border-bottom: 1px dashed var(--color-neutral-200); }
+    .src-list li:last-child { border-bottom: 0; }
+    .src-list .src-name { font-weight: 600; color: var(--color-neutral-900); }
+    .src-list .src-flag { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-accent-700); }
+    .src-list .src-dep { color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.2vw, 1rem); }
+
+    .callout-accent { background: var(--color-accent-50); border-left: 5px solid var(--color-accent-500); padding: 1rem 1.3rem; margin: 0.9rem 0; border-radius: 0 6px 6px 0; }
+    .callout-accent p { margin: 0; font-size: clamp(1.15rem, 1.8vw, 1.5rem); color: var(--color-neutral-900); font-weight: 500; }
+
+    .pull-quote { font-size: clamp(1.4rem, 2.6vw, 2.1rem); line-height: 1.4; color: var(--color-neutral-900); font-weight: 500; border-left: 6px solid var(--color-accent-500); padding: 0.3em 2rem; margin: 1.2rem 0; font-style: italic; }
+
+    .slide--takeaway { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--takeaway .slide-inner { justify-content: center; }
+    .slide--takeaway .punch { font-size: clamp(2rem, 4.2vw, 3.2rem); font-weight: 700; color: var(--color-neutral-50); line-height: 1.25; margin: 0 0 1.5rem 0; letter-spacing: -0.02em; }
+    .slide--takeaway .punch em { color: var(--color-accent-500); font-style: normal; }
+    .slide--takeaway .observations { border-top: 1px solid var(--color-neutral-700); padding-top: 1.2rem; margin-top: 0.8rem; list-style: none; padding-left: 0; }
+    .slide--takeaway .observations li { color: var(--color-neutral-300); padding: 0.5rem 0; font-size: clamp(1rem, 1.5vw, 1.3rem); padding-left: 0; }
+    .slide--takeaway .observations li strong { color: var(--color-accent-500); }
+
+    .slide--closing { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--closing .slide-inner { justify-content: center; }
+    .slide--closing h2 { color: var(--color-neutral-50); font-size: clamp(2.6rem, 5.5vw, 4rem); }
+    .slide--closing .cta-list { margin-top: 1.5rem; list-style: none; padding: 0; }
+    .slide--closing .cta-list li { position: relative; padding: 0.4rem 0 0.4rem 2rem; color: var(--color-neutral-300); font-size: clamp(1.05rem, 1.6vw, 1.4rem); }
+    .slide--closing .cta-list li::before { content: "→"; position: absolute; left: 0; color: var(--color-accent-500); font-weight: 600; }
+    .slide--closing .cta-list code { background: var(--color-neutral-800); color: var(--color-accent-300); }
+    .slide--closing .footer-meta { margin-top: 2rem; font-family: var(--font-mono); font-size: clamp(0.82rem, 1.15vw, 1rem); color: var(--color-neutral-400); letter-spacing: 0.05em; }
+
+    .counter { position: fixed; right: 1rem; bottom: 0.75rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.05em; z-index: 5; user-select: none; }
+    .progress { position: fixed; left: 0; top: 0; right: 0; height: 3px; z-index: 6; }
+    .progress-fill { height: 100%; background: var(--color-accent-500); width: 0; transition: width 200ms ease; }
+
+    /* On-screen nav buttons — mouse fallback */
+    .nav-btn { position: fixed; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: 0; font-size: 1.4rem; cursor: pointer; opacity: 0; transition: opacity 200ms ease, background 200ms ease; z-index: 7; user-select: none; display: flex; align-items: center; justify-content: center; line-height: 1; font-family: var(--font-sans); }
+    .nav-btn:hover { background: rgba(0,0,0,0.55); opacity: 1; }
+    .nav-btn:focus-visible { outline: 3px solid var(--color-accent-500); outline-offset: 3px; opacity: 1; }
+    .nav-btn:disabled { opacity: 0.15 !important; cursor: not-allowed; }
+    body:hover .nav-btn { opacity: 0.5; }
+    .nav-prev { left: 0.75rem; }
+    .nav-next { right: 0.75rem; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+
+    @media print {
+      body { overflow: visible; background: white; }
+      .deck { position: static; display: block; }
+      .slide { display: block !important; page-break-after: always; box-shadow: none; border-radius: 0; width: 100%; height: 100vh; }
+      .counter, .progress, .nav-btn { display: none !important; }
+      @page { size: landscape; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="deck" id="deck">
+
+  <!-- ========= Slide 1 · Cover ========= -->
+  <section class="slide slide--cover active">
+    <div class="slide-inner">
+      <div class="eyebrow">Toolkit Deep Dive · 2026</div>
+      <h1>claude-devkit</h1>
+      <div class="sub">Claude Code 跨專案開發輔助 plugin — 把 PR 評分與規劃文件合成兩個高頻場景<strong>做透</strong>。</div>
+      <div class="meta">
+        <span>v0.4.2 · MIT · sunmerandone/claude-devkit</span>
+        <time datetime="2026-04-19">2026-04-19</time>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 2 · Framing ========= -->
+  <section class="slide slide--framing">
+    <div class="slide-inner">
+      <div class="eyebrow">Framing</div>
+      <h2>不追求大而全</h2>
+      <p class="lead">兩個 skill（<code>/devkit:score-pr</code>、<code>/devkit:plan-writer</code>）加起來支撐的是<strong>日常工程兩個最高頻的決策點</strong>。</p>
+      <p class="lead lead--pivot">用工具結構**承認「沒有銀彈」** —— 不同工程文化用不同 profile，rubric 準則相同但權重切換。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 3 · KPI ========= -->
+  <section class="slide slide--kpi">
+    <div class="slide-inner">
+      <div class="eyebrow">01 · At a glance</div>
+      <h2 style="font-size: clamp(1.5rem, 3vw, 2.2rem);">四個「怎麼設計」的決策</h2>
+      <div class="kpi-grid">
+        <div class="kpi-item">
+          <div class="kpi-value">2<span class="unit">skills</span></div>
+          <div class="kpi-label">score-pr · plan-writer</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">5<span class="unit">profiles</span></div>
+          <div class="kpi-label">可切換評分權重（不動 rubric 本體）</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">7<span class="unit">dims</span></div>
+          <div class="kpi-label">評分維度（所有 profile 共用）</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">3<span class="unit">tmpl</span></div>
+          <div class="kpi-label">規劃文件樣板</div>
+        </div>
+      </div>
+      <div class="kpi-footer">v0.4.2 · MIT · 雙語文件（中 + EN）· 獨立 prompt 備援（非 Claude Code 使用者可用）</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 4 · Section I Divider ========= -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section I · 安裝與上手</div>
+      <h1>三行指令<br>裝起來</h1>
+      <div class="divider-sub">marketplace add &nbsp;·&nbsp; plugin install &nbsp;·&nbsp; 開跑</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 5 · Install ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">02 · 安裝</div>
+      <h2>三行指令裝起來 — 預設 user scope</h2>
+      <div class="code-block">
+<span class="code-file"># Claude Code CLI 已裝、gh auth login 已登入</span>
+/plugin marketplace add <span class="code-key">suNmerandone/claude-devkit</span>
+/plugin install <span class="code-key">devkit@suNmerandone-claude-devkit</span>
+/devkit:score-pr</div>
+      <p>預設寫入 <code>~/.claude/</code>，所有專案通用，**不污染任何 repo**。</p>
+      <p style="color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem);">若要團隊共用 → <code>--scope project</code>（寫入 <code>.claude/settings.json</code>）；若要僅此專案私用 → <code>--scope local</code>（gitignored）。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 6 · Update ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">03 · 更新 / Scope 切換</div>
+      <h2>更新跟切換的 3 行</h2>
+      <div class="code-block">
+<span class="code-comment"># 更新：</span>
+/plugin marketplace update
+/plugin update
+/reload-plugins</div>
+      <h3 style="margin-top: 1rem;">Scope 快速選擇</h3>
+      <ul>
+        <li><strong>user</strong>（預設）— 個人使用、跨所有專案</li>
+        <li><strong>project</strong> — 團隊共用、寫入 <code>.claude/settings.json</code></li>
+        <li><strong>local</strong> — 僅此專案、gitignored、僅自己</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 7 · Section II Divider ========= -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section II · Tool A</div>
+      <h1>/devkit:score-pr<br>PR 品質評分</h1>
+      <div class="divider-sub">等級 A / B+ / B- / C / D &nbsp;·&nbsp; 分類行動清單</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 8 · score-pr overview ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">04 · score-pr · 概觀</div>
+      <h2>兩種呼叫：互動 vs 快速</h2>
+      <div class="code-block">
+<span class="code-comment"># 互動模式 — 新手推薦，逐步問 4 題</span>
+/devkit:score-pr
+
+<span class="code-comment"># 快速模式 — 熟練者、帶參數</span>
+/devkit:score-pr develop --ensemble --profile brownfield --lang en</div>
+      <div class="callout-accent">
+        <p>互動模式結束會在輸出末尾**提示等價的 direct-mode 指令** — 下次直接複製使用，刻意的學習曲線設計。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 9 · Profile 決策樹 ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">05 · Profile 決策樹</div>
+      <h2>5 組 profile 的選擇邏輯</h2>
+      <div class="code-block" style="font-size: clamp(0.9rem, 1.3vw, 1.15rem);">
+是否為 legacy / brownfield 專案？
+├─ 是 → <span class="code-key">brownfield</span>
+└─ 否 →
+    是否為高風險領域（醫療 / 金融 / 航空 / 驅動）？
+    ├─ 是 → <span class="code-key">safety-critical</span>
+    └─ 否 →
+        是否為 MVP / POC 階段？
+        ├─ 是 → <span class="code-key">fast-iteration</span>
+        └─ 否 →
+            嚴格 TDD 文化 + 高測試覆蓋？
+            ├─ 是 → <span class="code-key">test-driven</span>
+            └─ 否 → <span class="code-key">default</span></div>
+      <p style="color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem); margin-top: 0.8rem;">所有 profile 的**評分準則與等級對照完全相同**，只有 7 維度權重不同。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 10 · Default vs Brownfield 對照 ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">06 · Default vs Brownfield</div>
+      <h2>最常被切換的兩組權重</h2>
+      <div class="compare-cols">
+        <div class="compare-col">
+          <div class="compare-head">
+            <span class="compare-tag">default</span>
+            <div class="compare-note">通用平衡 · 測試完善、非 legacy</div>
+          </div>
+          <ul class="weight-list">
+            <li><span class="dim">正確性</span><span class="wt">25%</span></li>
+            <li><span class="dim">測試覆蓋</span><span class="wt">20%</span></li>
+            <li><span class="dim">向後相容</span><span class="wt">15%</span></li>
+            <li><span class="dim">防禦性編碼</span><span class="wt">15%</span></li>
+            <li><span class="dim">可維護性</span><span class="wt">10%</span></li>
+            <li><span class="dim">變更風險</span><span class="wt">10%</span></li>
+            <li><span class="dim">程式碼品質</span><span class="wt">5%</span></li>
+          </ul>
+        </div>
+        <div class="compare-col accent">
+          <div class="compare-head">
+            <span class="compare-tag">brownfield</span>
+            <div class="compare-note">大型 legacy · 測試壓低、相容提高</div>
+          </div>
+          <ul class="weight-list">
+            <li><span class="dim">正確性</span><span class="wt">25%</span></li>
+            <li><span class="dim">測試覆蓋</span><span class="wt">10%</span></li>
+            <li><span class="dim">向後相容</span><span class="wt up">20%</span></li>
+            <li><span class="dim">防禦性編碼</span><span class="wt">15%</span></li>
+            <li><span class="dim">可維護性</span><span class="wt">10%</span></li>
+            <li><span class="dim">變更風險</span><span class="wt up">15%</span></li>
+            <li><span class="dim">程式碼品質</span><span class="wt">5%</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 11 · Ensemble mode ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">07 · Ensemble mode</div>
+      <h2>把 LLM 評估的隨機性<br>用統計層補償</h2>
+      <p><code>--ensemble</code> 啟動 **3 個獨立 subagent 同時評估**，取眾數為最終等級，標示「一致性：高 / 中」。</p>
+      <ul>
+        <li><strong>用在</strong>：release 前審查 · 懷疑單次評估波動 · 新專案第一次建立基準</li>
+        <li><strong>代價</strong>：執行時間 3 倍、token 消耗增加</li>
+        <li><strong>日常</strong>：single mode 即可</li>
+      </ul>
+      <div class="callout-accent">
+        <p>把 ML 的<strong>集成學習（ensemble learning）</strong>概念搬到日常工程工具 —— 這種「跨領域類比」是 senior → staff engineer 的思維分水嶺。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 12 · Section III Divider ========= -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section III · Tool B</div>
+      <h1>/devkit:plan-writer<br>規劃文件合成</h1>
+      <div class="divider-sub">Ticket &nbsp;·&nbsp; Confluence &nbsp;·&nbsp; PR &nbsp;·&nbsp; 手動描述 &nbsp;→ 結構化 plan</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 13 · plan-writer overview ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">08 · plan-writer · 四種資料源</div>
+      <h2>四個來源可混用</h2>
+      <ul class="src-list">
+        <li>
+          <span class="src-name">Azure DevOps Ticket</span>
+          <span class="src-flag"><code>--ticket AB#12345</code></span>
+          <span class="src-dep">Azure DevOps MCP</span>
+        </li>
+        <li>
+          <span class="src-name">Jira Ticket</span>
+          <span class="src-flag"><code>--ticket PROJ-123</code></span>
+          <span class="src-dep">Confluence MCP（含 Jira）</span>
+        </li>
+        <li>
+          <span class="src-name">Confluence 頁面</span>
+          <span class="src-flag"><code>--confluence &lt;url&gt;</code></span>
+          <span class="src-dep">Confluence MCP</span>
+        </li>
+        <li>
+          <span class="src-name">GitHub PR / branch</span>
+          <span class="src-flag"><code>--pr &lt;url&gt;</code></span>
+          <span class="src-dep">gh CLI</span>
+        </li>
+        <li>
+          <span class="src-name">手動描述</span>
+          <span class="src-flag"><code>--desc "..."</code></span>
+          <span class="src-dep">無依賴</span>
+        </li>
+      </ul>
+      <p style="color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.3vw, 1.1rem);">plan-writer 本身<strong>不綁定任何 MCP</strong> — 借用你既有的 Claude Code 環境配置。少哪個就標示不可用、用其他資料繼續合成。</p>
+    </div>
+  </section>
+
+  <!-- ========= Slide 14 · Templates + Modes ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">09 · Templates · Modes</div>
+      <h2>三樣板 × 三模式</h2>
+      <ul>
+        <li><code>generic</code> — Scope / Background / Requirements / Approach / Risks / Estimation</li>
+        <li><code>brownfield-plan</code> — 加 Document History、Brownfield Considerations、5.5h/day 工時換算</li>
+        <li><code>minimal</code> — Goal / Approach / Estimated Effort（POC 用）</li>
+      </ul>
+      <div class="code-block">
+<span class="code-comment"># 互動模式 — 逐步問 5-6 題</span>
+/devkit:plan-writer
+
+<span class="code-comment"># 混合模式 — 帶部分參數，缺的才問</span>
+/devkit:plan-writer --ticket AB#12345
+
+<span class="code-comment"># 快速模式 — 齊全參數、不問不吵</span>
+/devkit:plan-writer --ticket AB#12345 --template brownfield-plan \
+                   --output doc/plan/MyFeature.md</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 15 · plan-writer Boundary ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">10 · Boundary · 不做什麼</div>
+      <h2>這是規劃工具、不是執行工具</h2>
+      <div class="callout-accent">
+        <p><strong>不</strong>自動建 Jira subtasks · <strong>不</strong>發佈 Confluence · <strong>不</strong>改 ticket 狀態 · <strong>不</strong>執行任何 git 操作（commit / push / branch 切換）</p>
+      </div>
+      <p>這些屬於**領域特定 plugin** 的範疇 —— 若團隊需要這類 workflow，應建獨立 plugin（如 <code>acme-toolkit</code>），不混入 devkit。</p>
+      <h3 style="margin-top: 0.8rem;">資料不足時的行為</h3>
+      <ul>
+        <li>素材不足的章節標記 <code>&lt;TBD: 具體缺什麼&gt;</code></li>
+        <li>TBD 彙整到文件末的 Metadata 區段</li>
+        <li><strong>絕不捏造素材中沒有的資訊</strong></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 16 · Section IV Divider ========= -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section IV · 設計原則</div>
+      <h1>影響你<br>怎麼用</h1>
+      <div class="divider-sub">SKILL.md / README.md 分離 &nbsp;·&nbsp; Progressive Disclosure &nbsp;·&nbsp; CLAUDE.md 注入</div>
+    </div>
+  </section>
+
+  <!-- ========= Slide 17 · Design principles ========= -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">11 · 四個結構性選擇</div>
+      <h2>知道這些才能把工具用到位</h2>
+      <ul>
+        <li><strong>SKILL.md vs README.md 職責分離</strong> — SKILL.md 英文（給 Claude）、README.md 繁中（給人）；兩者<strong>不重複不互注</strong></li>
+        <li><strong>Progressive Disclosure</strong> — SKILL.md ≤ 500 行，詳細規則拆 reference 檔（如 <code>rubric.md</code>）按需讀，不稀釋主指令</li>
+        <li><strong>通用 + 讀 CLAUDE.md 注入特化</strong> — devkit 不硬編碼任何專案邏輯；需要特化時讀目標專案的 <code>.claude/CLAUDE.md</code> 注入（score-pr 已實作）</li>
+        <li><strong>Direct-mode Hint</strong> — 互動 / 混合模式結束時提示**等價的 direct-mode 指令**，讓使用者「試一次 → 下次直接跳過互動」</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 18 · Takeaway ========= -->
+  <section class="slide slide--takeaway">
+    <div class="slide-inner">
+      <div class="eyebrow" style="color: var(--color-accent-500);">Takeaway</div>
+      <div class="punch">不追求大而全 ——<br>把**兩個高頻場景**做透<br>再用 <em>profile</em> 承認沒有銀彈。</div>
+      <ul class="observations">
+        <li><strong>01 —</strong> SKILL.md（機器讀）與 README.md（人讀）職責分離，比「一份到底」更能擴展</li>
+        <li><strong>02 —</strong> 用 profile 切換權重，比寫死 rubric 更能適配多工程文化</li>
+        <li><strong>03 —</strong> 讀 CLAUDE.md 注入特化，讓通用 plugin 適配多專案，不需為每家客戶派生分支</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========= Slide 19 · Closing ========= -->
+  <section class="slide slide--closing">
+    <div class="slide-inner">
+      <div class="eyebrow">12 · 下一步</div>
+      <h2>裝起來、試跑一次</h2>
+      <ul class="cta-list">
+        <li><code>/plugin marketplace add suNmerandone/claude-devkit</code></li>
+        <li>下一個 PR → <code>/devkit:score-pr --ensemble</code> 跑一次</li>
+        <li>下一份規劃書 → <code>/devkit:plan-writer --ticket &lt;你的 ticket&gt;</code></li>
+      </ul>
+      <div class="footer-meta">v0.4.2 · MIT · 原始報告見 <code>sunmerandone.github.io/claude-devkit-guide/</code></div>
+    </div>
+  </section>
+
+</div>
+
+<button class="nav-btn nav-prev" id="navPrev" aria-label="上一頁" title="上一頁（← 鍵 / 右鍵 / 滾輪向上）">‹</button>
+<button class="nav-btn nav-next" id="navNext" aria-label="下一頁" title="下一頁（→ 鍵 / 點擊 / 滾輪向下）">›</button>
+
+<div class="counter" id="counter" aria-live="polite" aria-atomic="true">1 / 19</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let idx = 0;
+  const counter = document.getElementById('counter');
+  const progressFill = document.getElementById('progressFill');
+  const navPrev = document.getElementById('navPrev');
+  const navNext = document.getElementById('navNext');
+
+  function fitSlide(slide) {
+    const inner = slide.querySelector('.slide-inner');
+    if (!inner) return;
+    inner.style.transform = '';
+    const contentH = inner.scrollHeight;
+    const containerH = slide.clientHeight;
+    // 16px safety buffer：吸收 DPI zoom（125%）+ sub-pixel rounding + 字型載入誤差
+    // 原值 4px 對高密度 code-block slide 不足，實戰觀察到 15-20px overflow
+    const SAFETY = 16;
+    if (contentH + SAFETY > containerH) {
+      const ratio = (containerH - SAFETY) / contentH;
+      inner.style.transform = `scale(${ratio})`;
+    }
+  }
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = `${idx + 1} / ${total}`;
+    progressFill.style.width = `${((idx + 1) / total) * 100}%`;
+    requestAnimationFrame(() => fitSlide(slides[idx]));
+    navPrev.disabled = (idx === 0);
+    navNext.disabled = (idx === total - 1);
+  }
+  function next() { if (idx < total - 1) { idx++; render(); } }
+  function prev() { if (idx > 0)         { idx--; render(); } }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') { idx = 0; render(); }
+    else if (e.key === 'End')  { idx = total - 1; render(); }
+    else if (e.key === 'f')    { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  });
+
+  document.getElementById('deck').addEventListener('click', next);
+  document.addEventListener('contextmenu', (e) => { e.preventDefault(); prev(); });
+
+  let wheelLock = false;
+  document.addEventListener('wheel', (e) => {
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 10) return;
+    wheelLock = true;
+    setTimeout(() => { wheelLock = false; }, 500);
+    if (e.deltaY > 0) next(); else prev();
+  }, { passive: true });
+
+  navPrev.addEventListener('click', (e) => { e.stopPropagation(); prev(); });
+  navNext.addEventListener('click', (e) => { e.stopPropagation(); next(); });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => fitSlide(slides[idx]), 100);
+  });
+
+  render();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => render());
+  }
+</script>
+
+</body>
+</html>
