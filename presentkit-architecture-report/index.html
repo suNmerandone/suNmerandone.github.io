@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Presentkit · 把 AI 履歷工作流包成 Windows app（技術報告）</title>
+<meta name="description" content="從 Claude Code skill 升級為 BYOK 桌面產品 — Presentkit v0.2 的架構、BYOK safeguards 設計、shipping cadence 與真實產出案例。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-neutral-50:  #FAFAFA;
+    --color-neutral-100: #F4F4F5;
+    --color-neutral-200: #E4E4E7;
+    --color-neutral-300: #D4D4D8;
+    --color-neutral-400: #A1A1AA;
+    --color-neutral-500: #71717A;
+    --color-neutral-600: #52525B;
+    --color-neutral-700: #3F3F46;
+    --color-neutral-800: #27272A;
+    --color-neutral-900: #18181B;
+    --color-neutral-950: #0A0A0A;
+    --color-accent-50:  #FFF1F2;
+    --color-accent-300: #FDA4AF;
+    --color-accent-500: #FB7185;
+    --color-accent-600: #E11D48;
+    --color-accent-700: #BE123C;
+    --color-warning:    #B45309;
+    --color-info:       #1D4ED8;
+
+    --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    --shadow-sm: 0 1px 2px 0 rgba(24,24,27,0.04);
+    --shadow-md: 0 4px 8px -2px rgba(24,24,27,0.06), 0 2px 4px -2px rgba(24,24,27,0.04);
+    --shadow-lg: 0 12px 20px -4px rgba(24,24,27,0.08), 0 4px 8px -4px rgba(24,24,27,0.05);
+
+    --nav-height: 56px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-height) + 16px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-neutral-50);
+    color: var(--color-neutral-900);
+    line-height: 1.65;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ========== Navigation ========== */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    height: var(--nav-height);
+    background: rgba(250,250,250,0.85);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+  .nav-inner {
+    max-width: 1040px; margin: 0 auto; padding: 0 24px;
+    height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; color: var(--color-neutral-900); text-decoration: none; letter-spacing: -0.01em; }
+  .nav-brand-mark {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--color-accent-500), var(--color-accent-600));
+    color: white; display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+  }
+  .nav-links { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-link {
+    display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; color: var(--color-neutral-600);
+    text-decoration: none; white-space: nowrap; transition: color 150ms, background 150ms;
+  }
+  .nav-link:hover { color: var(--color-accent-600); background: var(--color-accent-50); }
+
+  /* ========== Layout ========== */
+  .container { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  /* ========== Hero ========== */
+  .hero { padding: 96px 0 64px; }
+  .hero-eyebrow {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--color-accent-600); letter-spacing: 0.15em; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.1;
+    letter-spacing: -0.02em; margin-bottom: 18px; color: var(--color-neutral-900);
+  }
+  .hero-lead {
+    font-size: clamp(1.1rem, 1.8vw, 1.35rem); line-height: 1.5;
+    color: var(--color-neutral-600); max-width: 680px; margin-bottom: 32px;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 12px 24px;
+    font-family: var(--font-mono); font-size: 13px; color: var(--color-neutral-500);
+  }
+  .hero-meta > * { display: inline-flex; align-items: center; gap: 6px; }
+  .hero-meta .tag {
+    background: var(--color-accent-50); color: var(--color-accent-700);
+    padding: 3px 10px; border-radius: 100px; font-weight: 600;
+  }
+  .hero-meta a { color: var(--color-accent-600); text-decoration: none; font-weight: 500; }
+  .hero-meta a:hover { text-decoration: underline; }
+
+  /* ========== KPI grid ========== */
+  .kpi-section { padding: 24px 0 64px; }
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  }
+  @media (max-width: 860px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
+  .kpi-card {
+    background: white; border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);
+    transition: box-shadow 200ms, transform 200ms;
+  }
+  .kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .kpi-value {
+    font-size: 44px; font-weight: 800; line-height: 1;
+    letter-spacing: -0.03em; color: var(--color-neutral-900);
+  }
+  .kpi-value .unit { font-family: var(--font-mono); font-size: 14px; color: var(--color-accent-600); margin-left: 6px; font-weight: 600; letter-spacing: 0.02em; }
+  .kpi-triple { font-size: 28px; letter-spacing: -0.02em; }
+  .kpi-triple .sep { color: var(--color-neutral-300); margin: 0 6px; font-weight: 400; }
+  .kpi-label { font-size: 13px; color: var(--color-neutral-600); margin-top: 14px; line-height: 1.45; }
+
+  /* ========== Sections ========== */
+  section.body-section { padding: 56px 0; border-top: 1px solid var(--color-neutral-200); }
+  .section-eyebrow {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--color-accent-600); letter-spacing: 0.15em; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .body-section h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem); font-weight: 700; line-height: 1.2;
+    letter-spacing: -0.01em; margin-bottom: 16px; color: var(--color-neutral-900);
+  }
+  .body-section h3 {
+    font-size: 18px; font-weight: 600; margin: 28px 0 10px;
+    color: var(--color-neutral-900); letter-spacing: -0.005em;
+  }
+  .body-section p { margin-bottom: 14px; color: var(--color-neutral-700); }
+  .body-section p.lead { font-size: 17px; color: var(--color-neutral-700); margin-bottom: 20px; }
+  .body-section strong { font-weight: 600; color: var(--color-neutral-900); }
+  .body-section a { color: var(--color-accent-600); font-weight: 500; text-decoration: none; }
+  .body-section a:hover { text-decoration: underline; }
+  .body-section code { font-family: var(--font-mono); font-size: 13px; background: var(--color-neutral-100); padding: 1px 6px; border-radius: 3px; color: var(--color-accent-700); }
+  .body-section ul { padding-left: 22px; margin: 10px 0 18px; }
+  .body-section li { margin: 6px 0; color: var(--color-neutral-700); }
+
+  /* ========== Callout ========== */
+  .callout {
+    background: var(--color-accent-50);
+    border-left: 3px solid var(--color-accent-500);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px; margin: 24px 0;
+    color: var(--color-neutral-800); font-size: 15px;
+  }
+  .callout strong { color: var(--color-accent-700); }
+  .callout.muted { background: var(--color-neutral-100); border-left-color: var(--color-neutral-400); }
+  .callout.muted strong { color: var(--color-neutral-900); }
+
+  /* ========== Data table ========== */
+  .data-table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    background: white; border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-md); overflow: hidden;
+    font-size: 14px; margin: 20px 0;
+  }
+  .data-table thead th {
+    background: var(--color-neutral-900); color: white;
+    padding: 12px 16px; text-align: left; font-weight: 600; font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .data-table tbody td {
+    padding: 12px 16px; border-bottom: 1px solid var(--color-neutral-100);
+    vertical-align: top; color: var(--color-neutral-700);
+  }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:hover { background: var(--color-neutral-50); }
+  .data-table .accent-cell { color: var(--color-accent-600); font-weight: 600; font-family: var(--font-mono); font-size: 13px; }
+
+  /* ========== Code block ========== */
+  /* NOTE — <div class="code"> 的內容有實質 `\n`，沒有 `white-space` 會被 HTML 折成單行。
+     用 `pre-wrap` 而非 `pre`：長行（例如某個檔案路徑）仍會換行，避免橫向 scroll 出界。
+     這是 external-anti-patterns #6 的同源問題。 */
+  .code {
+    background: var(--color-neutral-900); color: var(--color-neutral-100);
+    border-radius: var(--radius-md); padding: 16px 18px;
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.65;
+    white-space: pre-wrap; word-break: break-word;
+    overflow-x: auto; margin: 20px 0;
+  }
+  .code .comment { color: var(--color-neutral-500); }
+  .code .key { color: var(--color-accent-300); }
+  .code .file { color: var(--color-neutral-400); font-size: 12px; margin-bottom: 8px; display: block; letter-spacing: 0.03em; }
+
+  /* ========== Decision table ========== */
+  .decision-list { display: grid; gap: 10px; margin: 20px 0; }
+  .decision-row {
+    display: grid; grid-template-columns: 180px 1fr; gap: 18px;
+    padding: 14px 18px; background: white;
+    border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md);
+  }
+  .decision-key {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--color-accent-600); letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .decision-val { color: var(--color-neutral-700); font-size: 14px; line-height: 1.55; }
+  @media (max-width: 640px) {
+    .decision-row { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  /* ========== Architecture diagram container ========== */
+  .diagram-wrap {
+    background: white; border: 1px solid var(--color-neutral-200);
+    border-radius: var(--radius-md); padding: 20px;
+    margin: 24px 0;
+  }
+  .diagram-wrap svg { width: 100%; height: auto; display: block; }
+  .diagram-caption {
+    font-family: var(--font-mono); font-size: 12px; color: var(--color-neutral-500);
+    text-align: center; margin-top: 10px; letter-spacing: 0.03em;
+  }
+
+  /* ========== Output showcase ========== */
+  .output-showcase {
+    display: grid; grid-template-columns: 5fr 4fr; gap: 32px;
+    align-items: start; margin: 24px 0;
+  }
+  @media (max-width: 720px) { .output-showcase { grid-template-columns: 1fr; } }
+  .output-image {
+    border: 1px solid var(--color-neutral-200); border-radius: var(--radius-md);
+    overflow: hidden; box-shadow: var(--shadow-md); background: white;
+  }
+  .output-image img { width: 100%; height: auto; display: block; }
+  .output-meta dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin-bottom: 20px; }
+  .output-meta dt { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--color-neutral-500); letter-spacing: 0.08em; text-transform: uppercase; padding-top: 4px; }
+  .output-meta dd { color: var(--color-neutral-800); font-size: 14px; }
+  .output-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--color-neutral-900); color: white;
+    padding: 12px 20px; border-radius: var(--radius-md);
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    transition: background 150ms;
+  }
+  .output-cta:hover { background: var(--color-accent-600); }
+  .output-cta .arrow { font-family: var(--font-mono); transition: transform 150ms; }
+  .output-cta:hover .arrow { transform: translateX(3px); }
+
+  /* ========== Closing takeaways ========== */
+  .takeaway-section { background: var(--color-neutral-900); color: var(--color-neutral-100); }
+  .takeaway-section h2 { color: white; }
+  .takeaway-section p { color: var(--color-neutral-300); }
+  .takeaway-section .section-eyebrow { color: var(--color-accent-500); }
+  .takeaway-list { display: grid; gap: 14px; margin: 24px 0; }
+  .takeaway-item {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-md);
+  }
+  .takeaway-item strong { color: var(--color-accent-500); font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
+  .takeaway-item p { margin: 0; color: var(--color-neutral-300); font-size: 15px; }
+
+  /* ========== Footer ========== */
+  footer.page-footer {
+    background: var(--color-neutral-950); color: var(--color-neutral-400);
+    padding: 40px 0; font-family: var(--font-mono); font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+  footer.page-footer .container { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; align-items: center; }
+  footer.page-footer a { color: var(--color-accent-500); text-decoration: none; }
+  footer.page-footer a:hover { text-decoration: underline; }
+
+  /* ========== Misc ========== */
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 100px;
+    background: var(--color-neutral-100); color: var(--color-neutral-700);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .pill--accent { background: var(--color-accent-50); color: var(--color-accent-700); }
+  .pill--warn { background: #FEF3C7; color: var(--color-warning); }
+</style>
+</head>
+<body>
+
+<nav class="nav" aria-label="目錄">
+  <div class="nav-inner">
+    <a class="nav-brand" href="#top">
+      <span class="nav-brand-mark">P</span>
+      Presentkit · 技術報告
+    </a>
+    <div class="nav-links">
+      <a class="nav-link" href="#problem">問題</a>
+      <a class="nav-link" href="#architecture">架構</a>
+      <a class="nav-link" href="#byok">BYOK</a>
+      <a class="nav-link" href="#anchor">Anchor</a>
+      <a class="nav-link" href="#cadence">節奏</a>
+      <a class="nav-link" href="#output">產出</a>
+    </div>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- ========== Hero ========== -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-eyebrow">Technical Report · 2026-04-19</div>
+      <h1>把 AI 履歷工作流包成 Windows app</h1>
+      <p class="hero-lead">
+        Presentkit 把一套 Claude Code skill 流程降維成「開 app → 填 wizard → 拿 HTML 履歷」的 BYOK 桌面產品。從 Phase 0 空窗到 v0.2 tag，這份報告拆開它的架構決策、BYOK safeguards 層、Anchor/iteration 機制，以及一份真實可點擊的產出。
+      </p>
+      <div class="hero-meta">
+        <span class="tag">v0.2.0 · tagged</span>
+        <span>Windows 10/11 · .NET 10 · WinUI 3</span>
+        <span>MIT · private repo</span>
+        <span>Source: <a href="https://github.com/suNmerandone/presentkit" target="_blank" rel="noopener">github.com/suNmerandone/presentkit</a></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== KPI ========== -->
+  <section class="kpi-section">
+    <div class="container">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-value">8<span class="unit">steps</span></div>
+          <div class="kpi-label">Design → LinkedIn → Intake → Materials → Anchor → Outline → Generate → Done</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">7<span class="unit">safeguards</span></div>
+          <div class="kpi-label">Mode badge · pre-flight confirm · token estimate · audit log · rate-limit pacing · stale-pref protection · 429 retry</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">103<span class="unit">MB ZIP</span></div>
+          <div class="kpi-label">Self-contained · 免 .NET runtime · 免管理員權限 · 雙擊 exe 即可跑</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value kpi-triple">
+            0<span class="sep">·</span>0<span class="sep">·</span>0
+          </div>
+          <div class="kpi-label"><strong style="color:var(--color-neutral-900);">0 installer · 0 admin · 0 CDN</strong><br>本機優先；HTML 產出零外部 CDN 呼叫</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 1 · Problem + Brand ========== -->
+  <section id="problem" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">01 · Problem & Brand position</div>
+      <h2>把「要會 Claude Code」變成「雙擊 exe」</h2>
+
+      <p class="lead">
+        <code>claude-present</code> 有一套已驗證的雙語履歷 skill —— <code>resume-profile</code>。問題是用它要先跨三道門檻：裝 Claude Code CLI、讀懂 <code>.claude/skills/</code> 結構、手動編輯 markdown。這對非開發者是三道拒馬，對開發者也是小鬱悶。
+      </p>
+
+      <h3>三道摩擦</h3>
+      <div class="decision-list">
+        <div class="decision-row">
+          <div class="decision-key">Friction 1 · CLI</div>
+          <div class="decision-val">使用者要裝 Node、裝 Claude Code、登入帳號（或綁 MAX 訂閱）才能按下第一個指令。</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Friction 2 · Skill 結構</div>
+          <div class="decision-val">要知道 SKILL.md 放哪裡、touch 哪個 references 檔會影響什麼產出、output 資料夾結構長怎樣。</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Friction 3 · Markdown 編輯</div>
+          <div class="decision-val">Intake 資料靠手寫或貼上 markdown、靠改檔案來改內容 —— 沒表單、沒驗證、沒雙語切換按鈕。</div>
+        </div>
+      </div>
+
+      <h3>Presentkit 的答案 —— 不是 prompt wrapper，是產品</h3>
+      <p>
+        市面上很多「AI 履歷工具」是 web 表單直接丟 prompt 給 GPT/Claude，使用者承擔的是行為層面的信任：「它會不會偷存我的履歷？」Presentkit 走另一條：<strong>BYOK（bring your own key）桌面 app</strong>，把成本和控制權都交還給使用者。
+      </p>
+      <div class="callout">
+        <strong>品牌定位 · spending trust as a feature</strong>：其他工具把 BYOK 當成「技術選項」；Presentkit 把它當成產品的主體 —— mode badge、pre-flight 對話、audit log 都是圍繞「使用者永遠知道自己花了什麼、為什麼」展開。
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 2 · Architecture ========== -->
+  <section id="architecture" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">02 · Architecture at a glance</div>
+      <h2>五個 project · 一條 data flow</h2>
+
+      <p class="lead">
+        WinUI 3 unpackaged 桌面 app，切成 5 個 .NET project。規矩很硬：<strong><code>Presentkit.Core</code> 不能碰 I/O</strong>，只能放純資料 record 和 design preset；所有檔案 / DPAPI / 網路都下沉到對應的專屬 project。這樣 Core 可以用純單元測試驗，UI 可以換不用動領域模型。
+      </p>
+
+      <h3>Project 邊界</h3>
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="arch-title arch-desc">
+          <title id="arch-title">Presentkit 5-project 架構</title>
+          <desc id="arch-desc">Presentkit.App 依賴 Core / Claude / Pdf / Secrets；Core 是 IO-free 領域模型；其他 project 各自處理一類 IO。</desc>
+          <style>
+            .box { fill: white; stroke: #E4E4E7; stroke-width: 1.5; rx: 8; }
+            .box-ui { fill: #FFF1F2; stroke: #FDA4AF; }
+            .box-core { fill: #F4F4F5; stroke: #A1A1AA; }
+            .box-io { fill: white; }
+            .title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 14px; fill: #18181B; }
+            .sub { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 10px; fill: #52525B; letter-spacing: 0.02em; }
+            .role { font-family: 'Inter', sans-serif; font-size: 11px; fill: #52525B; }
+            .role-accent { fill: #E11D48; font-weight: 600; }
+            .arrow { stroke: #A1A1AA; stroke-width: 1.2; fill: none; }
+          </style>
+
+          <!-- Top: App -->
+          <rect class="box box-ui" x="260" y="20" width="200" height="70" rx="8"/>
+          <text class="title" x="360" y="46" text-anchor="middle">Presentkit.App</text>
+          <text class="sub" x="360" y="62" text-anchor="middle">WinUI 3 · views · view-models</text>
+          <text class="role role-accent" x="360" y="78" text-anchor="middle">consumer of everything below</text>
+
+          <!-- Arrows from App to 4 libs -->
+          <path class="arrow" d="M330 90 L140 150" marker-end="url(#arrowhead)"/>
+          <path class="arrow" d="M350 90 L275 150" marker-end="url(#arrowhead)"/>
+          <path class="arrow" d="M380 90 L455 150" marker-end="url(#arrowhead)"/>
+          <path class="arrow" d="M400 90 L590 150" marker-end="url(#arrowhead)"/>
+
+          <!-- Middle: 4 libs -->
+          <rect class="box box-io" x="40" y="150" width="200" height="80"/>
+          <text class="title" x="140" y="178" text-anchor="middle">Presentkit.Claude</text>
+          <text class="sub" x="140" y="195" text-anchor="middle">Anthropic SDK wrapper</text>
+          <text class="role" x="140" y="212" text-anchor="middle">+ MockClaudeClient</text>
+          <text class="role" x="140" y="225" text-anchor="middle">+ ClaudeClientFactory</text>
+
+          <rect class="box box-io" x="260" y="150" width="140" height="80"/>
+          <text class="title" x="330" y="178" text-anchor="middle">Presentkit.Pdf</text>
+          <text class="sub" x="330" y="195" text-anchor="middle">PdfPig text extraction</text>
+          <text class="role" x="330" y="212" text-anchor="middle">+ LinkedIn parser</text>
+
+          <rect class="box box-io" x="420" y="150" width="140" height="80"/>
+          <text class="title" x="490" y="178" text-anchor="middle">Presentkit.Secrets</text>
+          <text class="sub" x="490" y="195" text-anchor="middle">DPAPI · prefs · draft</text>
+          <text class="role" x="490" y="212" text-anchor="middle">local files only</text>
+
+          <rect class="box box-core" x="580" y="150" width="110" height="80"/>
+          <text class="title" x="635" y="178" text-anchor="middle">Presentkit.Core</text>
+          <text class="sub" x="635" y="195" text-anchor="middle">ResumeIntake</text>
+          <text class="role role-accent" x="635" y="212" text-anchor="middle">IO-free domain</text>
+
+          <!-- Bottom note -->
+          <line x1="40" y1="265" x2="690" y2="265" stroke="#E4E4E7" stroke-width="1" stroke-dasharray="3,3"/>
+          <text class="role" x="365" y="290" text-anchor="middle">Core 沒有對其他 4 個的依賴 — 它是被參照的領域模型，不參照回去</text>
+          <text class="role" x="365" y="308" text-anchor="middle">這個規矩讓 Core 可以純單元測試，UI 可以換（未來上 MAUI/Avalonia）而不動領域</text>
+
+          <defs>
+            <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#A1A1AA"/>
+            </marker>
+          </defs>
+        </svg>
+        <div class="diagram-caption">Figure 1 · Project dependency — App consumes 4 libraries; Core stays at the bottom, IO-free</div>
+      </div>
+
+      <h3>Data flow · 一次 Generate 做什麼</h3>
+      <div class="code">
+<span class="file">GenerateViewModel.RunAsync()</span><span class="comment"># 單語言 path</span>
+WizardVMs → <span class="key">ResumeIntake</span> record
+          → <span class="key">PromptAssembler.Build</span>(intake, design, linkedInText, targetLanguage)
+          → <span class="key">IClaudeClient.StreamMessageAsync</span>      <span class="comment"># mock OR real by factory</span>
+          → <span class="key">StreamDelta</span> 累積進 StringBuilder
+          → <span class="key">ResumeOrchestrator.BuildArtifact</span>       <span class="comment"># 裹 HTML skeleton</span>
+          → <span class="key">ResumeFileWriter.Write</span>                 <span class="comment"># 4 檔一套</span>
+          → auto-advance wizard → Step 8 (Done)
+
+<span class="comment"># 雙語（Both）時 loop 跑兩次，每次帶不同 LanguageDirective</span>
+<span class="comment"># 需要時在中間塞 silent pause（> 25K 估 tokens 才觸發）</span></div>
+
+      <h3>五個關鍵技術決策</h3>
+      <div class="decision-list">
+        <div class="decision-row">
+          <div class="decision-key">MVVM · partial-prop</div>
+          <div class="decision-val">全部 VM 用 <code>public partial string X { get; set; }</code> + <code>[ObservableProperty]</code>。欄位形式會觸發 MVVMTK0045（non-AOT-safe WinRT marshalling），專案規矩是零警告。</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">BYOK · DPAPI</div>
+          <div class="decision-val">API key 存 <code>%LOCALAPPDATA%\Presentkit\secrets\anthropic-api-key.bin</code>，用 Windows DPAPI CurrentUser scope 加密。免管理員權限、使用者換機即失效（刻意）。</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">PDF · PdfPig</div>
+          <div class="decision-val">LinkedIn PDF 文字抽取走 <code>PdfPig</code>（MIT），避開 iTextSharp 的 AGPL 授權感染。用 <code>ContentOrderTextExtractor</code> 保 column / paragraph 結構，給 LinkedIn parser regex 好過日子。</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Deploy · self-contained</div>
+          <div class="decision-val">Unpackaged WinUI3 + <code>PublishReadyToRun</code> + <code>WindowsAppSDKSelfContained</code>。產出 103 MB ZIP，免安裝 .NET runtime、免 MSIX cert、免管理員權限。</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Mock · airtight</div>
+          <div class="decision-val">只有 <code>ClaudeClientFactory.Create(apiKey, useMock)</code> 是取得真 client 的路。任何繞過它的 call path 都會讓 offline toggle 失靈 —— 所以 CLAUDE.md 明文列為禁止項。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 3 · BYOK safeguards ========== -->
+  <section id="byok" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">03 · BYOK safeguards layer</div>
+      <h2>七條護欄 · 把信任做成產品</h2>
+
+      <p class="lead">
+        使用者按 Generate 的那一刻，他的 API key 實際扣錢。<strong>每一條護欄的設計原則都是「讓使用者永遠知道自己在花什麼、為什麼」</strong>。這不是合規勾選，是產品主體。
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 30%;">Safeguard</th>
+            <th style="width: 52%;">做的事</th>
+            <th style="width: 18%;">實作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Mode badge</strong><br><span class="pill pill--accent">LIVE</span> <span class="pill">OFFLINE</span> <span class="pill">NO KEY</span></td>
+            <td>頂部 wordmark 旁永遠一個彩色徽章。LIVE 是琥珀色（警示但不是 red alert）、OFFLINE 是板岩灰、NO KEY 是鋅灰。每次關 Settings dialog 會自動 refresh。</td>
+            <td><code>MainWindow.<br>RefreshModeBadge()</code></td>
+          </tr>
+          <tr>
+            <td><strong>Pre-flight confirm</strong></td>
+            <td>Generate 按下去之前跳對話，顯示 model、預估成本區間、預估 token 數、rate-limit 風險。<strong>預設按鈕是 Cancel</strong> —— 使用者必須明確點 "Generate (spend tokens)" 才動。Mock mode 跳過這個 dialog。</td>
+            <td><code>GenerateView.<br>GenerateButton_Click</code></td>
+          </tr>
+          <tr>
+            <td><strong>Token estimate 警報</strong></td>
+            <td>Generate step 上方的 InfoBar 三階段：<code>&lt; 20K</code> 綠燈、<code>20K–28K</code> 黃燈、<code>≥ 28K</code> 紅燈 + 可行動建議（"remove Anchor / trim Materials / skip LinkedIn"）。</td>
+            <td><code>PromptAssembler.<br>EstimateInputTokens</code></td>
+          </tr>
+          <tr>
+            <td><strong>API call audit log</strong></td>
+            <td>每次真實 Anthropic 呼叫（stream / ping / ping-failed）都寫一行 tab-separated 到 <code>%LOCALAPPDATA%\Presentkit\api-calls.log</code>。<strong>Mock 不寫</strong>。使用者可拿這份對帳 Anthropic Console 的 billing。</td>
+            <td><code>ApiCallAuditLog<br>.Record</code></td>
+          </tr>
+          <tr>
+            <td><strong>Stale-pref protection</strong></td>
+            <td>每次真 API 呼叫前都<strong>從磁碟重讀 prefs</strong>。早期版本曾 cache，結果使用者在 Settings 切 offline 後、Generate 還是偷偷打了真 API —— 這條護欄直接壓死這類 regression。</td>
+            <td><code>GenerateViewModel.<br>RunAsync</code></td>
+          </tr>
+          <tr>
+            <td><strong>Rate-limit pacing</strong></td>
+            <td>雙語 + 大 prompt 時，若估算 <code>2 × per-call &gt; 25K</code>，自動在兩通之間塞 silent 60s pause（對使用者顯示 "Processing..."，不暴露 rate-limit 機制）。</td>
+            <td><code>GenerateViewModel.<br>BilingualPause</code></td>
+          </tr>
+          <tr>
+            <td><strong>429 retry</strong></td>
+            <td>Anthropic 回 <code>rate_limit_error</code> 時自動 retry 一次（60s 後）。第二次還失敗才把錯誤表面化到 Status line。</td>
+            <td><code>AnthropicClaude<br>Client</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>設計理由</strong>：LLM 產品的信任不在於「模型多準」，而在於使用者能不能<strong>預測</strong>自己按下去會發生什麼。Pre-flight 對話 + audit log 加起來，就是讓「我剛剛花了 5 美分對嗎？」這個問題每次都能在 10 秒內自己驗證。
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 4 · Anchor & Iteration ========== -->
+  <section id="anchor" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">04 · Anchor & iteration mode</div>
+      <h2>從「產一份新履歷」到「改一份舊履歷」</h2>
+
+      <p class="lead">
+        真實履歷使用情境很少是從零產。更常是：上次的版本 OK 但要加一個新專案、要改 headline、要移掉一段太舊的經歷。Anchor step 就是為這個設計的 —— 把之前的 Presentkit 產出檔案拖進來，選一個模式。
+      </p>
+
+      <h3>兩個模式</h3>
+      <div class="decision-list">
+        <div class="decision-row">
+          <div class="decision-key">Mirror style</div>
+          <div class="decision-val">用上次的 voice / 結構 / 密度作為 style reference，但<strong>內容從當次 Intake 重新生</strong>。適合「上次口吻對了，但工作換了 / 履歷改方向」。</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Iterate (diff mode)</div>
+          <div class="decision-val">把上次履歷當<strong>內容基線</strong>，只應用你在 Change Request 輸入框裡寫的變更。產出新版 + 機器可讀 changelog。適合「加專案 / 移經歷 / 改 headline」。</div>
+        </div>
+      </div>
+
+      <h3>Iteration 產出一份機器可讀 changelog</h3>
+      <p>
+        Iterate 模式 system prompt 明文要求 Claude 在回傳 HTML 最前面塞一個 <code>&lt;!-- CHANGES --&gt;</code> comment block，Orchestrator 再把它切出來塞進 <code>generation.log.md</code>。這樣「改了什麼」可以在不打開 HTML 的情況下看到。
+      </p>
+      <div class="code">
+<span class="file">generation.log.md · ## Claude-reported changes</span>
+- <span class="key">ADDED</span>: Experience 段新增「2026-Q2 LLM 整合專案」
+  - bullet: Built internal LLM routing layer handling 200k req/day
+  - bullet: Reduced model cost by 34% via intelligent caching
+- <span class="key">MODIFIED</span>: Hero tagline 從「Backend engineer」改為「Backend + AI infra engineer」
+- <span class="key">REMOVED</span>: 2021 的實習經歷（已超過 5 年且與目標職缺無關）
+- <span class="key">UNCHANGED</span>: Education / Skills 段</div>
+
+      <h3>遞迴 bloat 的防護</h3>
+      <p>
+        第一次 iterate 時 <code>source-notes.md</code> 會序列化 Intake + Anchor。如果天真地把整個 prior Anchor 也 dump 進 Intake，下一次 iterate 會把 <em>上次的 source-notes</em> 再 dump 一次，再下一次就 N²。Orchestrator 的 <code>CompactAnchorForArtifact</code> 把嵌套 anchor 的重檔（resume.html / source-notes / generation.log）換成一句「see prior folder」，<strong>斷掉遞迴指數增長</strong>。
+      </p>
+      <div class="callout muted">
+        <strong>技術細節</strong>：這個 bug 是真實踩到的 —— 早期版本 iterate 到第三次時，單次 input tokens 暴增到 40K+ 超過 starter tier 的 30K/min 上限。修完同時 iteration 的 system prompt 也砍掉近 68%，不帶重複上下文。
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 5 · Ship cadence ========== -->
+  <section id="cadence" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">05 · Ship-it cadence</div>
+      <h2>Phase 0 → v0.2 的節奏</h2>
+
+      <p class="lead">
+        從第一個 Mica 空窗到 tag v0.2.0，中間跨過了一些 trap。這節不是 changelog，是把幾個值得別人少踩的雷挑出來。
+      </p>
+
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tl-title tl-desc">
+          <title id="tl-title">Presentkit Phase 0 → v0.2 時間軸</title>
+          <desc id="tl-desc">從空窗 skeleton 到 v0.2 tag，8 個里程碑，中間 4 個是踩過的 trap。</desc>
+          <line x1="40" y1="100" x2="720" y2="100" stroke="#E4E4E7" stroke-width="2"/>
+          <g font-family="JetBrains Mono, monospace" font-size="11" fill="#52525B">
+            <!-- Phase 0 -->
+            <circle cx="60" cy="100" r="6" fill="#A1A1AA"/>
+            <text x="60" y="130" text-anchor="middle" font-weight="600" fill="#3F3F46">Phase 0</text>
+            <text x="60" y="148" text-anchor="middle" font-size="10">Mica 空窗</text>
+
+            <!-- Phase 1 -->
+            <circle cx="150" cy="100" r="6" fill="#A1A1AA"/>
+            <text x="150" y="72" text-anchor="middle" font-weight="600" fill="#3F3F46">Phase 1</text>
+            <text x="150" y="88" text-anchor="middle" font-size="10">round-trip + offline</text>
+
+            <!-- Phase 2 · trap -->
+            <circle cx="240" cy="100" r="7" fill="#FB7185"/>
+            <text x="240" y="130" text-anchor="middle" font-weight="700" fill="#E11D48">Phase 2 ⚠</text>
+            <text x="240" y="148" text-anchor="middle" font-size="10" fill="#E11D48">MVVMTK0045</text>
+
+            <!-- Phase 3 -->
+            <circle cx="330" cy="100" r="6" fill="#A1A1AA"/>
+            <text x="330" y="72" text-anchor="middle" font-weight="600" fill="#3F3F46">Phase 3</text>
+            <text x="330" y="88" text-anchor="middle" font-size="10">end-to-end pipeline</text>
+
+            <!-- Phase 4+5 trap -->
+            <circle cx="420" cy="100" r="7" fill="#FB7185"/>
+            <text x="420" y="130" text-anchor="middle" font-weight="700" fill="#E11D48">Phase 4-5 ⚠</text>
+            <text x="420" y="148" text-anchor="middle" font-size="10" fill="#E11D48">DataTemplate click</text>
+
+            <!-- Phase 6 trap -->
+            <circle cx="510" cy="100" r="7" fill="#FB7185"/>
+            <text x="510" y="72" text-anchor="middle" font-weight="700" fill="#E11D48">Phase 6 ⚠</text>
+            <text x="510" y="88" text-anchor="middle" font-size="10" fill="#E11D48">publish PRI missing</text>
+
+            <!-- v0.2 safeguards trap -->
+            <circle cx="600" cy="100" r="7" fill="#FB7185"/>
+            <text x="600" y="130" text-anchor="middle" font-weight="700" fill="#E11D48">v0.2 ⚠</text>
+            <text x="600" y="148" text-anchor="middle" font-size="10" fill="#E11D48">language fidelity</text>
+
+            <!-- v0.2 release -->
+            <circle cx="700" cy="100" r="9" fill="#E11D48" stroke="#FFF1F2" stroke-width="3"/>
+            <text x="700" y="72" text-anchor="middle" font-weight="700" fill="#E11D48">v0.2.0</text>
+            <text x="700" y="88" text-anchor="middle" font-size="10" fill="#E11D48">tagged · released</text>
+          </g>
+        </svg>
+        <div class="diagram-caption">Figure 2 · 珊瑚色節點 = 實際踩到並修的 trap（非 release）</div>
+      </div>
+
+      <h3>Trap 1 · <code>[ObservableProperty]</code> on fields 會 warning MVVMTK0045</h3>
+      <p>
+        MVVM Toolkit 8.4+ 在 WinUI 3 / WinRT 情境下，field-based <code>[ObservableProperty]</code> 會 emit <code>MVVMTK0045</code>（CsWinRT marshalling 不 AOT-safe）。<strong>修法：改 partial property 形式。</strong>repo rule：零警告 build。
+      </p>
+
+      <h3>Trap 2 · DataTemplate 裡的 <code>Click="Handler"</code> 綁不到 outer UserControl</h3>
+      <p>
+        一旦 <code>DataTemplate</code> 有 <code>x:DataType</code>（編譯期 x:Bind 需要），其中的 <code>Click="Handler"</code> 會去 item type（<code>JobExperienceViewModel</code>）上找，而不是外層 UserControl。<strong>修法：item 身上掛個 <code>RemoveCommand</code>，靠 <code>x:Bind</code> 連上去</strong>。
+      </p>
+
+      <h3>Trap 3 · <code>dotnet publish</code> 不會帶走 <code>Presentkit.App.pri</code></h3>
+      <p>
+        Unpackaged WinUI 3 的 <code>dotnet publish</code> 不把 app-level PRI 檔從 <code>bin/Release/.../win-x64/</code> 複製到 publish 目錄。<strong>症狀：ZIP 解開 double-click 後 silently crash，無 window。</strong>修法：<code>scripts/publish.ps1</code> 收完 <code>dotnet publish</code> 後 force-copy PRI 進去再壓 ZIP。
+      </p>
+
+      <h3>Trap 4 · Language fidelity 漂移</h3>
+      <p>
+        LinkedIn PDF 多半英文，Intake 多半繁體中文。Claude 在沒強制 steering 的情況下會跟著 dominant input language 跑 —— 選了 Chinese 結果出英文。<strong>修法：三層保險</strong> —— 把 <code>## Target output language</code> 放 user message 最前、system prompt 特別 CRITICAL 段、user message 最後再 reminder 一次。
+      </p>
+
+      <div class="callout muted">
+        <strong>其他沒單獨列的</strong>：Claude 回傳 <code>```html ... ```</code> markdown code fence（修法：system prompt 明禁 + 防禦性 sanitizer）· Mirror anchor 模式在 Claude body 末端複製 anchor 的 footer 導致輸出有兩個 footer（修法：<code>StripTrailingFooter</code>）· 遞迴 bloat（前一節已談）。
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Section 6 · Real output ========== -->
+  <section id="output" class="body-section">
+    <div class="container">
+      <div class="section-eyebrow">06 · Real output</div>
+      <h2>一份真實的 v0.2 產出</h2>
+
+      <p class="lead">
+        跑一次 Presentkit v0.2 會產出什麼？下面這份是實際執行結果 —— 使用者 Kenneth Chen 的履歷，套用 <strong>Minimalist Mono</strong> preset（三選一）、輸出語言選 Both（中英各一份）、用前一次的產出當 style anchor。
+      </p>
+
+      <div class="output-showcase">
+        <div>
+          <div class="output-image">
+            <img src="assets/resume-zh-hero.png" alt="Kenneth Chen 的 Presentkit 產出履歷截圖，Minimalist Mono preset，全黑等寬字體風格" />
+          </div>
+        </div>
+        <div class="output-meta">
+          <dl>
+            <dt>Preset</dt><dd>Minimalist Mono (<code>#18181B</code> 純黑 · IBM Plex Mono 全站)</dd>
+            <dt>Language</dt><dd>Both · ZH + EN 各一份</dd>
+            <dt>Anchor</dt><dd>使用先前產出作為 style mirror</dd>
+            <dt>Body</dt><dd>25,066 chars</dd>
+            <dt>Files</dt><dd><code>resume.html</code> · <code>resume.en.html</code> · <code>source-notes.md</code> · <code>generation.log.md</code></dd>
+            <dt>Model</dt><dd><code>claude-sonnet-4-6</code></dd>
+            <dt>Date</dt><dd>2026-04-19</dd>
+          </dl>
+          <a class="output-cta" href="../../resume/Presentkit_v0.2.0_2026-04-19/resume.html" target="_blank" rel="noopener">
+            <span>View actual output</span>
+            <span class="arrow">→</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>為什麼這份值得看</strong>：它不是 lorem ipsum 樣稿，是應用 Presentkit 工具、把實際的 career data（ViewSonic / Delta / Micron 三段經歷）生出來、可以直接 Ctrl+P 列印或寄出的履歷。產出檔頁尾有 <code>Generated with Presentkit v0.2.0</code> 的浮水印連回 GitHub —— 未經設計，默認存在。
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== Closing · Takeaways ========== -->
+  <section class="body-section takeaway-section">
+    <div class="container">
+      <div class="section-eyebrow">Closing</div>
+      <h2>三個可以帶走的 takeaway</h2>
+
+      <div class="takeaway-list">
+        <div class="takeaway-item">
+          <strong>01 · 包裝 AI 工具 = 讓使用者能預測花費</strong>
+          <p>技術再好，BYOK 產品的第一個決勝點是使用者每次按下 Generate 能不能<em>預測</em>結果。Mode badge、pre-flight、audit log 加起來不是合規項目，是產品主體。</p>
+        </div>
+        <div class="takeaway-item">
+          <strong>02 · 空值 KPI 也是 KPI</strong>
+          <p>0 installer · 0 admin · 0 CDN 這種「沒做什麼」的特性，對使用者的信任比「我做了多少」更有說服力。local-first 不是口號，是可以量化的承諾。</p>
+        </div>
+        <div class="takeaway-item">
+          <strong>03 · 把 iteration 做成一等公民</strong>
+          <p>履歷不是一次性產物，是 N 個版本的累積。Anchor + <code>&lt;!-- CHANGES --&gt;</code> 讓「改一份舊的」跟「產一份新的」一樣自然 —— 系統設計之初就承認人不會一次對。</p>
+        </div>
+      </div>
+
+      <h3 style="color: white; margin-top: 32px;">v0.2.1 / v0.3 候選（不承諾順序）</h3>
+      <ul>
+        <li style="color: var(--color-neutral-300);">Draft persistence 擴及 Materials / Anchor / iteration 欄位（v0.2 只存 Intake + Design）</li>
+        <li style="color: var(--color-neutral-300);">Outline step 預覽 Materials / Anchor / change request，不只 Intake</li>
+        <li style="color: var(--color-neutral-300);">Anthropic <code>usage</code> 欄位串到 <code>generation.log.md</code>（目前只有粗估 char count）</li>
+        <li style="color: var(--color-neutral-300);"><code>Presentkit.App.pri</code> copy 改寫成 MSBuild target，讓直接 <code>dotnet publish</code> 也能跑</li>
+        <li style="color: var(--color-neutral-300);">Code signing + ARM64 build · 視使用者群擴大情況決定</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="page-footer">
+  <div class="container">
+    <span>Presentkit · Technical Report · 2026-04-19</span>
+    <span>Source: <a href="https://github.com/suNmerandone/presentkit" target="_blank" rel="noopener">github.com/suNmerandone/presentkit</a> · v0.2.0</span>
+    <span>Generated with claude-present · <code>technical-report</code> skill</span>
+  </div>
+</footer>
+
+</body>
+</html>

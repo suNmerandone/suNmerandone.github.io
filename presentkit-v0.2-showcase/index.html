@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentkit · 從 Claude Code skill 到 BYOK 桌面產品（Deck · ZH）</title>
+  <meta name="description" content="Presentkit v0.2 showcase — 把 resume-profile skill 包成 Windows app，BYOK safeguards 設計，以及一份真實可點擊的產出案例。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-neutral-50:  #FAFAFA;
+      --color-neutral-100: #F4F4F5;
+      --color-neutral-200: #E4E4E7;
+      --color-neutral-300: #D4D4D8;
+      --color-neutral-400: #A1A1AA;
+      --color-neutral-500: #71717A;
+      --color-neutral-600: #52525B;
+      --color-neutral-700: #3F3F46;
+      --color-neutral-800: #27272A;
+      --color-neutral-900: #18181B;
+      --color-neutral-950: #0A0A0A;
+      --color-accent-50:  #FFF1F2;
+      --color-accent-100: #FFE4E6;
+      --color-accent-300: #FDA4AF;
+      --color-accent-500: #FB7185;
+      --color-accent-600: #E11D48;
+      --color-accent-700: #BE123C;
+
+      --color-amber-100: #FEF3C7;
+      --color-amber-500: #F59E0B;
+      --color-amber-700: #B45309;
+      --color-slate-500: #64748B;
+
+      --font-sans: "Inter", "Noto Sans TC", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { font-family: var(--font-sans); background: var(--color-neutral-950); overflow: hidden; }
+
+    .deck { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+    .slide {
+      width: min(96vw, calc(96vh * 16 / 9));
+      height: min(96vh, calc(96vw * 9 / 16));
+      aspect-ratio: 16 / 9;
+      background: var(--color-neutral-50);
+      display: none;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      border-radius: 4px;
+    }
+    .slide.active { display: block; }
+    .slide-inner {
+      position: absolute;
+      inset: 0;
+      padding: 3.2rem 4.2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      transform-origin: top left;
+    }
+    /* 防 scrollHeight 被 flex 壓縮說謊 */
+    .slide-inner > * { flex-shrink: 0; }
+
+    .slide h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 1.2rem 0; color: var(--color-neutral-900); }
+    .slide h2 { font-size: clamp(1.7rem, 3.6vw, 2.6rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 1rem 0; color: var(--color-neutral-900); }
+    .slide h3 { font-size: clamp(1.1rem, 1.9vw, 1.4rem); color: var(--color-neutral-600); font-weight: 500; margin: 0 0 0.7rem 0; }
+    .slide p, .slide li { font-size: clamp(1rem, 1.4vw, 1.3rem); line-height: 1.65; color: var(--color-neutral-700); }
+    .slide p { margin: 0.5rem 0; }
+    .slide ul { padding-left: 1.2em; margin: 0.5rem 0; }
+    .slide ul li { padding: 0.35rem 0; }
+    .slide strong { color: var(--color-neutral-900); font-weight: 600; }
+    .slide code { font-family: var(--font-mono); font-size: 0.92em; background: var(--color-neutral-100); padding: 0.1em 0.4em; border-radius: 3px; color: var(--color-accent-600); }
+
+    .eyebrow { font-family: var(--font-mono); font-size: clamp(0.78rem, 1.05vw, 0.95rem); letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent-600); margin-bottom: 0.9rem; }
+
+    /* ========== Cover ========== */
+    .slide--cover { background: var(--color-neutral-50); }
+    .slide--cover .slide-inner { justify-content: center; }
+    .slide--cover h1 { font-size: clamp(3rem, 7.5vw, 5.4rem); }
+    .slide--cover .sub { font-size: clamp(1.25rem, 2vw, 1.75rem); color: var(--color-neutral-600); margin-top: 0.5rem; line-height: 1.4; }
+    .slide--cover .meta { margin-top: auto; display: flex; justify-content: space-between; font-family: var(--font-mono); color: var(--color-neutral-500); font-size: clamp(0.85rem, 1.15vw, 1.05rem); }
+    .slide--cover .ver-badge { background: var(--color-accent-50); color: var(--color-accent-700); padding: 4px 12px; border-radius: 100px; font-weight: 600; }
+
+    /* ========== Framing ========== */
+    .slide--framing .slide-inner { justify-content: center; }
+    .slide--framing .lead { font-size: clamp(1.45rem, 2.5vw, 2rem); color: var(--color-neutral-500); margin: 0.8rem 0; line-height: 1.5; }
+    .slide--framing .lead--pivot { color: var(--color-neutral-900); font-weight: 600; }
+
+    /* ========== KPI ========== */
+    .slide--kpi .slide-inner { justify-content: center; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.8rem; margin-top: 1.2rem; }
+    .kpi-item { text-align: left; }
+    .kpi-value { font-size: clamp(2.8rem, 7vw, 5.2rem); font-weight: 700; letter-spacing: -0.04em; line-height: 1; color: var(--color-neutral-900); }
+    .kpi-value .unit { font-family: var(--font-mono); font-size: 0.3em; color: var(--color-accent-600); margin-left: 0.15em; letter-spacing: 0.02em; font-weight: 600; }
+    .kpi-triple { font-size: clamp(1.8rem, 4.2vw, 3.2rem); letter-spacing: -0.02em; }
+    .kpi-triple .sep { color: var(--color-neutral-300); margin: 0 0.15em; font-weight: 400; }
+    .kpi-label { margin-top: 0.75rem; font-size: clamp(0.82rem, 1.15vw, 1rem); color: var(--color-neutral-600); line-height: 1.55; }
+
+    /* ========== Divider ========== */
+    .slide--divider { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--divider .slide-inner { justify-content: center; padding: 3.5rem 5rem; }
+    .slide--divider .divider-num { font-family: var(--font-mono); font-size: clamp(0.9rem, 1.3vw, 1.15rem); letter-spacing: 0.15em; text-transform: uppercase; color: var(--color-accent-500); margin-bottom: 1.3rem; }
+    .slide--divider h1 { color: var(--color-neutral-50); font-size: clamp(3rem, 6.5vw, 5rem); margin: 0; line-height: 1.05; }
+    .slide--divider .divider-sub { margin-top: 1.3rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: clamp(0.9rem, 1.35vw, 1.1rem); letter-spacing: 0.04em; }
+
+    /* ========== Compare (friction) ========== */
+    .slide--problem .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; margin-top: 1rem; }
+    .slide--problem .compare-item { padding: 1.2rem 1.4rem; border-radius: 8px; background: var(--color-neutral-100); }
+    .slide--problem .compare-item.accent { background: var(--color-accent-50); border-left: 4px solid var(--color-accent-500); }
+    .slide--problem .compare-label { font-family: var(--font-mono); font-size: 0.82em; color: var(--color-neutral-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+    .slide--problem .compare-item.accent .compare-label { color: var(--color-accent-600); }
+    .slide--problem ul { list-style: none; padding: 0; margin: 0.4rem 0 0 0; }
+    .slide--problem ul li { padding: 0.3rem 0; border-bottom: 1px dashed var(--color-neutral-200); display: flex; align-items: baseline; gap: 0.6rem; }
+    .slide--problem ul li:last-child { border-bottom: 0; }
+    .slide--problem ul li::before { content: "→"; color: var(--color-accent-600); font-family: var(--font-mono); font-weight: 600; flex-shrink: 0; }
+    .slide--problem .compare-item:not(.accent) ul li::before { color: var(--color-neutral-400); }
+
+    /* ========== Architecture diagram ========== */
+    .arch-svg-wrap { margin-top: 0.8rem; }
+    .arch-svg-wrap svg { width: 100%; max-width: 880px; height: auto; display: block; margin: 0 auto; }
+    .arch-svg-wrap .caption { font-family: var(--font-mono); font-size: clamp(0.8rem, 1.05vw, 0.95rem); color: var(--color-neutral-500); text-align: center; margin-top: 0.6rem; }
+
+    /* ========== Code block ========== */
+    .code-block { background: var(--color-neutral-900); color: var(--color-neutral-200); padding: 1rem 1.3rem; border-radius: 6px; font-family: var(--font-mono); font-size: clamp(0.78rem, 1.05vw, 0.95rem); line-height: 1.55; margin: 0.8rem 0; overflow: hidden; border-left: 4px solid var(--color-accent-500); white-space: pre-wrap; }
+    .code-block .code-comment { color: var(--color-neutral-500); }
+    .code-block .code-key { color: var(--color-accent-300); }
+    .code-block .code-file { color: var(--color-neutral-400); font-size: 0.88em; margin-bottom: 0.5rem; display: block; letter-spacing: 0.05em; }
+
+    /* ========== Screenshot slide ========== */
+    .slide--screenshot .slide-inner { padding: 2.8rem 3.5rem; }
+    .slide--screenshot .ss-layout { display: grid; grid-template-columns: 7fr 5fr; gap: 2rem; margin-top: 0.5rem; }
+    .slide--screenshot .ss-image {
+      border: 1px solid var(--color-neutral-200); border-radius: 8px;
+      overflow: hidden; background: white;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .slide--screenshot .ss-image img { width: 100%; height: auto; display: block; }
+    .slide--screenshot .ss-side h2 { font-size: clamp(1.4rem, 2.4vw, 1.9rem); margin-bottom: 0.5rem; }
+    .slide--screenshot .ss-side .step-label { font-family: var(--font-mono); color: var(--color-accent-600); font-size: 0.85em; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; margin-bottom: 0.4rem; }
+    .slide--screenshot .ss-side ul { margin-top: 0.6rem; padding-left: 1.1em; }
+    .slide--screenshot .ss-side ul li { padding: 0.25rem 0; font-size: clamp(0.88rem, 1.15vw, 1.05rem); }
+    .slide--screenshot .ss-side .note {
+      margin-top: 0.8rem; padding: 0.7rem 0.9rem;
+      background: var(--color-accent-50); border-left: 3px solid var(--color-accent-500);
+      border-radius: 4px; font-size: clamp(0.82rem, 1.1vw, 1rem); color: var(--color-neutral-700);
+    }
+
+    /* ========== Badges (mode) ========== */
+    .badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; margin-top: 1.2rem; }
+    .badge-card {
+      padding: 1.5rem 1.4rem; border-radius: 8px;
+      border: 1.5px solid; text-align: left;
+    }
+    .badge-card .badge-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 100px;
+      font-family: var(--font-mono); font-weight: 700; font-size: 0.9em;
+      letter-spacing: 0.1em;
+    }
+    .badge-card .badge-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .badge-card h3 { margin: 0.9rem 0 0.3rem; font-size: clamp(1rem, 1.45vw, 1.25rem); color: var(--color-neutral-900); font-weight: 600; }
+    .badge-card p { margin: 0; font-size: clamp(0.85rem, 1.15vw, 1.05rem); line-height: 1.5; }
+
+    .badge--live { background: #FFFBEB; border-color: var(--color-amber-500); }
+    .badge--live .badge-pill { background: #FEF3C7; color: var(--color-amber-700); }
+    .badge--live .badge-dot { background: #D97706; }
+
+    .badge--offline { background: var(--color-neutral-100); border-color: var(--color-slate-500); }
+    .badge--offline .badge-pill { background: #E2E8F0; color: #334155; }
+    .badge--offline .badge-dot { background: var(--color-slate-500); }
+
+    .badge--nokey { background: var(--color-neutral-50); border-color: var(--color-neutral-400); }
+    .badge--nokey .badge-pill { background: #F1F5F9; color: #475569; }
+    .badge--nokey .badge-dot { background: var(--color-neutral-400); }
+
+    /* ========== Decision table ========== */
+    .decision-list { display: grid; gap: 0.6rem; margin-top: 0.8rem; }
+    .decision-row {
+      display: grid; grid-template-columns: 9.5em 1fr; gap: 1.2rem;
+      padding: 0.75rem 1rem; background: white;
+      border: 1px solid var(--color-neutral-200); border-radius: 6px;
+    }
+    .decision-key { font-family: var(--font-mono); font-size: 0.85em; color: var(--color-accent-600); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding-top: 0.15em; }
+    .decision-val { color: var(--color-neutral-700); font-size: clamp(0.9rem, 1.25vw, 1.1rem); line-height: 1.5; }
+
+    /* ========== Safeguards list ========== */
+    .safeguards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.9rem; margin-top: 0.8rem; }
+    .safeguard-item {
+      padding: 0.9rem 1.1rem; background: white;
+      border: 1px solid var(--color-neutral-200); border-radius: 6px;
+    }
+    .safeguard-name { font-weight: 600; color: var(--color-neutral-900); margin-bottom: 0.25rem; font-size: clamp(0.95rem, 1.3vw, 1.15rem); }
+    .safeguard-name::before { content: "● "; color: var(--color-accent-500); }
+    .safeguard-desc { color: var(--color-neutral-600); font-size: clamp(0.82rem, 1.1vw, 1rem); line-height: 1.5; }
+
+    /* ========== Showcase (resume sample) ========== */
+    .slide--showcase .slide-inner { padding: 2.5rem 3.5rem; }
+    .slide--showcase .sc-layout { display: grid; grid-template-columns: 5fr 4fr; gap: 2.2rem; align-items: center; margin-top: 0.6rem; }
+    .slide--showcase .sc-image {
+      border: 1px solid var(--color-neutral-200); border-radius: 8px;
+      overflow: hidden; background: white;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+    }
+    .slide--showcase .sc-image img { width: 100%; height: auto; display: block; }
+    .slide--showcase .sc-side h2 { margin-bottom: 0.8rem; }
+    .slide--showcase .sc-side dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; margin: 0.8rem 0 1.2rem; }
+    .slide--showcase .sc-side dt { font-family: var(--font-mono); font-size: 0.72em; font-weight: 600; color: var(--color-neutral-500); letter-spacing: 0.08em; text-transform: uppercase; padding-top: 0.3em; }
+    .slide--showcase .sc-side dd { color: var(--color-neutral-800); font-size: clamp(0.85rem, 1.15vw, 1.05rem); margin: 0; line-height: 1.4; }
+    .slide--showcase .sc-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--color-neutral-900); color: white;
+      padding: 0.7rem 1.2rem; border-radius: 8px;
+      font-size: clamp(0.9rem, 1.2vw, 1.1rem); font-weight: 600;
+      text-decoration: none;
+      transition: background 150ms;
+    }
+    .slide--showcase .sc-cta:hover { background: var(--color-accent-600); }
+    .slide--showcase .sc-cta .arrow { font-family: var(--font-mono); transition: transform 150ms; }
+    .slide--showcase .sc-cta:hover .arrow { transform: translateX(4px); }
+
+    /* ========== Timeline ========== */
+    .slide--timeline .timeline-svg { width: 100%; max-width: 100%; margin: 1rem auto 0; display: block; }
+    .slide--timeline .tl-legend { margin-top: 0.6rem; font-family: var(--font-mono); font-size: clamp(0.78rem, 1.05vw, 0.95rem); color: var(--color-neutral-500); display: flex; gap: 2rem; flex-wrap: wrap; }
+
+    /* ========== Takeaway ========== */
+    .slide--takeaway { background: var(--color-neutral-900); color: var(--color-neutral-50); }
+    .slide--takeaway .slide-inner { justify-content: center; }
+    .slide--takeaway .punch { font-size: clamp(2rem, 4.5vw, 3.4rem); font-weight: 700; color: var(--color-neutral-50); line-height: 1.25; margin: 0 0 1.4rem 0; letter-spacing: -0.02em; }
+    .slide--takeaway .punch em { color: var(--color-accent-500); font-style: normal; }
+    .slide--takeaway .observations { border-top: 1px solid var(--color-neutral-700); padding-top: 1.1rem; margin-top: 0.8rem; list-style: none; padding-left: 0; }
+    .slide--takeaway .observations li { color: var(--color-neutral-300); padding: 0.35rem 0; font-size: clamp(0.95rem, 1.4vw, 1.2rem); }
+    .slide--takeaway .observations li strong { color: var(--color-accent-500); font-family: var(--font-mono); font-size: 0.95em; margin-right: 0.5em; }
+    .slide--takeaway .links { margin-top: 1.4rem; font-family: var(--font-mono); font-size: clamp(0.82rem, 1.15vw, 1rem); color: var(--color-neutral-400); display: flex; gap: 1.4rem; flex-wrap: wrap; }
+    .slide--takeaway .links a { color: var(--color-accent-500); text-decoration: none; }
+    .slide--takeaway .links a:hover { text-decoration: underline; }
+
+    /* ========== Nav chrome ========== */
+    .counter { position: fixed; right: 1rem; bottom: 0.75rem; color: var(--color-neutral-400); font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.05em; z-index: 5; user-select: none; }
+    .progress { position: fixed; left: 0; top: 0; right: 0; height: 3px; z-index: 6; }
+    .progress-fill { height: 100%; background: var(--color-accent-500); width: 0; transition: width 200ms ease; }
+    .nav-btn { position: fixed; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.3); color: #fff; border: 0; font-size: 1.4rem; cursor: pointer; opacity: 0; transition: opacity 200ms ease, background 200ms ease; z-index: 7; user-select: none; display: flex; align-items: center; justify-content: center; line-height: 1; font-family: var(--font-sans); }
+    .nav-btn:hover { background: rgba(0,0,0,0.55); opacity: 1; }
+    .nav-btn:focus-visible { outline: 3px solid var(--color-accent-500); outline-offset: 3px; opacity: 1; }
+    .nav-btn:disabled { opacity: 0.15 !important; cursor: not-allowed; }
+    body:hover .nav-btn { opacity: 0.5; }
+    .nav-prev { left: 0.75rem; }
+    .nav-next { right: 0.75rem; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+
+    @media print {
+      body { overflow: visible; background: white; }
+      .deck { position: static; display: block; }
+      .slide { display: block !important; page-break-after: always; box-shadow: none; border-radius: 0; width: 100%; height: 100vh; }
+      .counter, .progress, .nav-btn { display: none !important; }
+      @page { size: landscape; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="deck" id="deck">
+
+  <!-- ========== 1 · Cover ========== -->
+  <section class="slide slide--cover active">
+    <div class="slide-inner">
+      <div class="eyebrow">Internal Tech Share · 2026-04-19</div>
+      <h1>Presentkit</h1>
+      <div class="sub">把 Claude Code skill 降維成<strong>雙擊 exe</strong> ——<br>BYOK Claude-powered bilingual resume generator for Windows</div>
+      <div class="meta">
+        <span>Kenneth Chen</span>
+        <span><span class="ver-badge">v0.2.0 · tagged</span></span>
+        <time datetime="2026-04-19">2026-04-19</time>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 2 · Framing ========== -->
+  <section class="slide slide--framing">
+    <div class="slide-inner">
+      <div class="eyebrow">Framing</div>
+      <h2>今天不是談「AI 怎麼生履歷」</h2>
+      <p class="lead">那是 prompt 的問題，被解到太多地方了。</p>
+      <p class="lead lead--pivot">今天談的是 —— 一套 AI 工具要變成<strong>產品</strong>，中間有什麼該想清楚。</p>
+      <p class="lead" style="margin-top: 1rem; font-size: clamp(1rem, 1.6vw, 1.3rem);">從 <code>resume-profile</code> skill 到 Presentkit v0.2，這份 deck 拆解那段距離。</p>
+    </div>
+  </section>
+
+  <!-- ========== 3 · KPI ========== -->
+  <section class="slide slide--kpi">
+    <div class="slide-inner">
+      <div class="eyebrow">01 · 度量</div>
+      <h2 style="font-size: clamp(1.4rem, 2.8vw, 2rem);">四個能定義這個產品的數字</h2>
+      <div class="kpi-grid">
+        <div class="kpi-item">
+          <div class="kpi-value">8<span class="unit">steps</span></div>
+          <div class="kpi-label">Design → LinkedIn → Intake → Materials → Anchor → Outline → Generate → Done</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">7<span class="unit">safeguards</span></div>
+          <div class="kpi-label">Mode badge · pre-flight · token estimate · audit log · pacing · stale-pref · 429 retry</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">103<span class="unit">MB</span></div>
+          <div class="kpi-label">self-contained ZIP · 免 .NET runtime · 免管理員權限</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value kpi-triple">0<span class="sep">·</span>0<span class="sep">·</span>0</div>
+          <div class="kpi-label"><strong style="color:var(--color-neutral-900);">0 installer · 0 admin · 0 CDN</strong> — local-first，HTML 產出零外部呼叫</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 4 · Divider I · 問題 ========== -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section I · Problem</div>
+      <h1>工作流 ≠ 產品</h1>
+      <div class="divider-sub">skill 能跑 ≠ 使用者按得下去</div>
+    </div>
+  </section>
+
+  <!-- ========== 5 · Friction compare ========== -->
+  <section class="slide slide--problem">
+    <div class="slide-inner">
+      <div class="eyebrow">02 · 三道摩擦</div>
+      <h2><code>resume-profile</code> skill 要跨三道門檻</h2>
+      <div class="compare">
+        <div class="compare-item">
+          <div class="compare-label">Before · 用 skill</div>
+          <ul>
+            <li>裝 Node · 裝 Claude Code · 登入</li>
+            <li>讀懂 <code>.claude/skills/</code> 結構</li>
+            <li>手動編輯 Markdown 當輸入</li>
+            <li>中途斷了 session 就沒</li>
+          </ul>
+        </div>
+        <div class="compare-item accent">
+          <div class="compare-label">After · 用 Presentkit</div>
+          <ul>
+            <li>雙擊 <code>Presentkit.App.exe</code></li>
+            <li>wizard 表單 · 自動存草稿</li>
+            <li>貼 API key · 看到 <code>LIVE</code> 徽章才花錢</li>
+            <li>按 Generate · 可取消 · 可 iterate</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top: 1rem; color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.25vw, 1.1rem);">前者是「讓 AI 能產」的工具；後者是<strong>能被非開發者採用的產品</strong>。</p>
+    </div>
+  </section>
+
+  <!-- ========== 6 · Divider II · 架構 ========== -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section II · Architecture</div>
+      <h1>五個 project<br>一條 data flow</h1>
+      <div class="divider-sub">domain 不碰 IO · IO 各住一個 project · App 消費全部</div>
+    </div>
+  </section>
+
+  <!-- ========== 7 · 5-project layout ========== -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">03 · Architecture</div>
+      <h2>Project dependency</h2>
+      <div class="arch-svg-wrap">
+        <svg viewBox="0 0 780 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="arch-title arch-desc">
+          <title id="arch-title">Presentkit 五個 project 的依賴關係</title>
+          <desc id="arch-desc">Presentkit.App 消費 Core / Claude / Pdf / Secrets；Core 是 IO-free 領域模型，被其他三者參照但不反向依賴。</desc>
+          <style>
+            .sv-box { fill: white; stroke: #E4E4E7; stroke-width: 1.5; rx: 8; }
+            .sv-box-ui { fill: #FFF1F2; stroke: #FDA4AF; }
+            .sv-box-core { fill: #F4F4F5; stroke: #A1A1AA; }
+            .sv-title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px; fill: #18181B; }
+            .sv-sub { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 10px; fill: #52525B; letter-spacing: 0.02em; }
+            .sv-role { font-family: 'Inter', sans-serif; font-size: 11px; fill: #52525B; }
+            .sv-role-accent { fill: #E11D48; font-weight: 600; }
+            .sv-arrow { stroke: #A1A1AA; stroke-width: 1.2; fill: none; }
+          </style>
+
+          <rect class="sv-box sv-box-ui" x="280" y="20" width="220" height="72" rx="8"/>
+          <text class="sv-title" x="390" y="46" text-anchor="middle">Presentkit.App</text>
+          <text class="sv-sub" x="390" y="62" text-anchor="middle">WinUI 3 · views · view-models</text>
+          <text class="sv-role sv-role-accent" x="390" y="80" text-anchor="middle">consumer of everything below</text>
+
+          <path class="sv-arrow" d="M340 92 L150 150" marker-end="url(#arr2)"/>
+          <path class="sv-arrow" d="M365 92 L300 150" marker-end="url(#arr2)"/>
+          <path class="sv-arrow" d="M410 92 L490 150" marker-end="url(#arr2)"/>
+          <path class="sv-arrow" d="M440 92 L640 150" marker-end="url(#arr2)"/>
+
+          <rect class="sv-box" x="40" y="150" width="220" height="82" rx="8"/>
+          <text class="sv-title" x="150" y="178" text-anchor="middle">Presentkit.Claude</text>
+          <text class="sv-sub" x="150" y="195" text-anchor="middle">Anthropic SDK wrapper</text>
+          <text class="sv-role" x="150" y="213" text-anchor="middle">+ MockClaudeClient</text>
+          <text class="sv-role" x="150" y="228" text-anchor="middle">+ ClaudeClientFactory</text>
+
+          <rect class="sv-box" x="280" y="150" width="150" height="82" rx="8"/>
+          <text class="sv-title" x="355" y="178" text-anchor="middle">Presentkit.Pdf</text>
+          <text class="sv-sub" x="355" y="195" text-anchor="middle">PdfPig extraction</text>
+          <text class="sv-role" x="355" y="213" text-anchor="middle">+ LinkedIn parser</text>
+
+          <rect class="sv-box" x="450" y="150" width="150" height="82" rx="8"/>
+          <text class="sv-title" x="525" y="178" text-anchor="middle">Presentkit.Secrets</text>
+          <text class="sv-sub" x="525" y="195" text-anchor="middle">DPAPI · prefs · draft</text>
+          <text class="sv-role" x="525" y="213" text-anchor="middle">local files only</text>
+
+          <rect class="sv-box sv-box-core" x="620" y="150" width="130" height="82" rx="8"/>
+          <text class="sv-title" x="685" y="178" text-anchor="middle">Presentkit.Core</text>
+          <text class="sv-sub" x="685" y="195" text-anchor="middle">ResumeIntake</text>
+          <text class="sv-role sv-role-accent" x="685" y="213" text-anchor="middle">IO-free domain</text>
+
+          <line x1="40" y1="260" x2="750" y2="260" stroke="#E4E4E7" stroke-width="1" stroke-dasharray="3,3"/>
+          <text class="sv-role" x="395" y="285" text-anchor="middle">Core 沒有對其他 4 個的依賴，被參照但不反參照</text>
+          <text class="sv-role" x="395" y="302" text-anchor="middle">這規矩讓 Core 可純單元測試 · UI 可替換而不動領域</text>
+
+          <defs>
+            <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#A1A1AA"/>
+            </marker>
+          </defs>
+        </svg>
+        <div class="caption">五個 project · 依賴只能向下 · Core 是領域模型的不動點</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 8 · Data flow ========== -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">04 · Data flow</div>
+      <h2>一次 Generate · 做了什麼</h2>
+      <div class="code-block">
+<span class="code-file">GenerateViewModel.RunAsync()</span>WizardVMs → <span class="code-key">ResumeIntake</span> record
+          → <span class="code-key">PromptAssembler.Build</span>(intake, design, linkedIn, targetLang)
+          → <span class="code-key">IClaudeClient.StreamMessageAsync</span>         <span class="code-comment"># mock OR real by factory</span>
+          → <span class="code-key">StreamDelta</span> 累積進 StringBuilder
+          → <span class="code-key">ResumeOrchestrator.BuildArtifact</span>          <span class="code-comment"># 裹 HTML skeleton</span>
+          → <span class="code-key">ResumeFileWriter.Write</span>                    <span class="code-comment"># 4 檔一套</span>
+          → auto-advance → Step 8 (Done)
+
+<span class="code-comment"># 雙語時 loop 跑兩次，各帶不同 LanguageDirective</span>
+<span class="code-comment"># 若 2× per-call 估計 &gt; 25K，中間塞 silent pause</span></div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.25vw, 1.1rem);">整條 flow <strong>只有一個取真 client 的路</strong>：<code>ClaudeClientFactory.Create</code>。繞它都是失手，CLAUDE.md 明文列禁。</p>
+    </div>
+  </section>
+
+  <!-- ========== 9 · Divider III · Wizard ========== -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section III · The 8-step wizard</div>
+      <h1>走一次<br>使用者的視角</h1>
+      <div class="divider-sub">Design · LinkedIn · Intake · Materials · Anchor · Outline · Generate · Done</div>
+    </div>
+  </section>
+
+  <!-- ========== 10 · Step 1 Design ========== -->
+  <section class="slide slide--screenshot">
+    <div class="slide-inner">
+      <div class="eyebrow">05 · Step 1</div>
+      <div class="ss-layout">
+        <div class="ss-image">
+          <img src="assets/screenshots/01-design.png"
+               onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[01-design.png]</div>';"
+               alt="Presentkit Design step — 三張預設設計卡片" />
+        </div>
+        <div class="ss-side">
+          <div class="step-label">Design</div>
+          <h2>三選一，或帶自己的</h2>
+          <ul>
+            <li><strong>Tech-forward Coral</strong>（預設） · 軟體 / AI / 產品</li>
+            <li><strong>Corporate Neutral</strong> · 金融 / 傳產，深藍零裝飾</li>
+            <li><strong>Minimalist Mono</strong> · 設計 / 編輯，全 IBM Plex Mono</li>
+          </ul>
+          <div class="note">或 <code>Import custom design (JSON)</code> 帶自己的 tokens —— accent、字型 stack 都可覆寫。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 11 · Step 2 LinkedIn ========== -->
+  <section class="slide slide--screenshot">
+    <div class="slide-inner">
+      <div class="eyebrow">06 · Step 2</div>
+      <div class="ss-layout">
+        <div class="ss-image">
+          <img src="assets/screenshots/02-linkedin.png"
+               onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[02-linkedin.png]</div>';"
+               alt="Presentkit LinkedIn step — PDF drop zone" />
+        </div>
+        <div class="ss-side">
+          <div class="step-label">LinkedIn · optional</div>
+          <h2>拖 PDF 進來 · 100% 本機</h2>
+          <ul>
+            <li>PdfPig 抽文字 → regex parser 拆欄位</li>
+            <li>Intake 空的話<strong>靜默 auto-fill</strong></li>
+            <li>Intake 有內容 → 先問「覆寫嗎？」</li>
+            <li>不花 token · 純本機解析</li>
+          </ul>
+          <div class="note">這步刻意在 Intake 之前。一份 PDF 把 7 section 表單自動填好，使用者只需校對。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 12 · Step 3 Intake ========== -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">07 · Step 3</div>
+      <h2>Intake · 七個 section，不多也不少</h2>
+      <div class="decision-list">
+        <div class="decision-row"><div class="decision-key">1 · 姓名+Headline</div><div class="decision-val">一句話定位 · 決定整份履歷語氣</div></div>
+        <div class="decision-row"><div class="decision-key">2 · 聯絡方式</div><div class="decision-val">free text，email/phone/LinkedIn/個站每行一個</div></div>
+        <div class="decision-row"><div class="decision-key">3 · Target role</div><div class="decision-val"><strong>整個 wizard 最重要的一欄</strong> · 決定內容選擇</div></div>
+        <div class="decision-row"><div class="decision-key">4 · 現職</div><div class="decision-val">Company · Role · Period · bullets（有數字給數字）</div></div>
+        <div class="decision-row"><div class="decision-key">5 · 過去經歷</div><div class="decision-val">repeater · reverse-chronological · 10+ 年舊可合併</div></div>
+        <div class="decision-row"><div class="decision-key">6 · 教育</div><div class="decision-val">學校 · 系所 · 年份</div></div>
+        <div class="decision-row"><div class="decision-key">7 · 重點成就</div><div class="decision-val">3–5 條 reader 8 秒掃描後會記住的</div></div>
+      </div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-500); font-size: clamp(0.88rem, 1.2vw, 1.05rem);">Output language 從 Intake 搬到 Generate step —— 因為 2× 成本的決策該發生在「花錢那一刻」。</p>
+    </div>
+  </section>
+
+  <!-- ========== 13 · Step 4 Materials ========== -->
+  <section class="slide slide--screenshot">
+    <div class="slide-inner">
+      <div class="eyebrow">08 · Step 4</div>
+      <div class="ss-layout">
+        <div class="ss-image">
+          <img src="assets/screenshots/04-materials.png"
+               onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[04-materials.png]</div>';"
+               alt="Presentkit Materials step — 附加檔案上傳" />
+        </div>
+        <div class="ss-side">
+          <div class="step-label">Materials · optional</div>
+          <h2>補充素材 · <code>.pdf</code> / <code>.md</code> / <code>.txt</code></h2>
+          <ul>
+            <li>職缺 JD（Claude 可以順著寫 tone）</li>
+            <li>舊履歷 / cover letter 草稿</li>
+            <li>專案 README · autobiographical note</li>
+          </ul>
+          <div class="note">這步不花 token，檔案會在 Generate 時拼進 prompt（~ 幾千 tokens 多一點成本，幾美分）。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 14 · Step 5 Anchor ========== -->
+  <section class="slide slide--screenshot">
+    <div class="slide-inner">
+      <div class="eyebrow">09 · Step 5</div>
+      <div class="ss-layout">
+        <div class="ss-image">
+          <img src="assets/screenshots/05-anchor.png"
+               onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[05-anchor.png]</div>';"
+               alt="Presentkit Anchor step — mirror vs iterate 模式" />
+        </div>
+        <div class="ss-side">
+          <div class="step-label">Anchor · optional</div>
+          <h2>Mirror · 或 Iterate</h2>
+          <ul>
+            <li><strong>Mirror style</strong> · 承襲 voice，內容重生</li>
+            <li><strong>Iterate (diff)</strong> · 拿舊版當基線、只套 change request</li>
+            <li>Iterate 會產出機器可讀 <code>&lt;!-- CHANGES --&gt;</code> log</li>
+          </ul>
+          <div class="note">Anchor 檔只吃 Presentkit 產出（偵測 <code>&lt;!-- generated-by: presentkit --&gt;</code>）。任意 HTML 被拒，走 Materials。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 15 · Step 7 Generate ========== -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">10 · Step 7</div>
+      <h2>Generate · 花錢前的三道把關</h2>
+      <div class="decision-list">
+        <div class="decision-row">
+          <div class="decision-key">InfoBar</div>
+          <div class="decision-val"><strong>Cost advisory</strong>：模式、預估成本區間、token 估算。<code>&lt; 20K</code> 綠 · <code>20–28K</code> 黃 · <code>≥ 28K</code> 紅 + 可行動建議</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Radio</div>
+          <div class="decision-val"><strong>Output language</strong>：Chinese（1 call） / English（1 call） / Both（2 calls · ≈2× cost）。語言決策發生在花錢前</div>
+        </div>
+        <div class="decision-row">
+          <div class="decision-key">Pre-flight</div>
+          <div class="decision-val"><strong>Confirm dialog</strong>：按下 Generate 後彈，顯示 model + cost + token + rate-limit 風險。<strong>預設按鈕是 Cancel</strong> · mock mode 跳過</div>
+        </div>
+      </div>
+      <p style="margin-top: 0.8rem; color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.25vw, 1.1rem);">Step 6 <strong>Outline</strong> 是靜態 review gate —— 拼好的 Intake + Anchor 顯示給使用者最後確認 · 無 API 呼叫 · 無成本。</p>
+    </div>
+  </section>
+
+  <!-- ========== 16 · Step 8 Done ========== -->
+  <section class="slide slide--screenshot">
+    <div class="slide-inner">
+      <div class="eyebrow">11 · Step 8</div>
+      <div class="ss-layout">
+        <div class="ss-image">
+          <img src="assets/screenshots/08-done.png"
+               onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[08-done.png]</div>';"
+               alt="Presentkit Done step — 產出完成畫面" />
+        </div>
+        <div class="ss-side">
+          <div class="step-label">Done</div>
+          <h2>四個檔案 · 一套完整產物</h2>
+          <ul>
+            <li><code>resume.html</code> · 主產出 · 自足 HTML</li>
+            <li><code>resume.en.html</code> · Both 模式才生</li>
+            <li><code>source-notes.md</code> · 輸入可重現</li>
+            <li><code>generation.log.md</code> · 元資料 + iterate 時帶 CHANGES</li>
+          </ul>
+          <div class="note">三個按鈕：開 HTML、開資料夾、重新開始一份。設計刻意：<strong>檔案保留</strong>、wizard 重置。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 17 · Divider IV · BYOK safeguards ========== -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section IV · BYOK safeguards</div>
+      <h1>信任<br>當作 feature</h1>
+      <div class="divider-sub">use own key · see own spend · reconcile own billing</div>
+    </div>
+  </section>
+
+  <!-- ========== 18 · Mode badge ========== -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">12 · Mode badge</div>
+      <h2>頂部三色徽章 · 永遠可見</h2>
+      <div class="badges-grid">
+        <div class="badge-card badge--live">
+          <span class="badge-pill"><span class="badge-dot"></span>LIVE</span>
+          <h3>琥珀色 · 會花 token</h3>
+          <p>真 API key 已設 · 按 Generate 會扣錢 · 刻意不用 red（會誤解為錯誤）</p>
+        </div>
+        <div class="badge-card badge--offline">
+          <span class="badge-pill"><span class="badge-dot"></span>OFFLINE</span>
+          <h3>板岩灰 · 安全模式</h3>
+          <p>MockClaudeClient · 零 API 呼叫 · 零成本 · 刻意不用 green（會被讀成 "go"）</p>
+        </div>
+        <div class="badge-card badge--nokey">
+          <span class="badge-pill"><span class="badge-dot"></span>NO KEY</span>
+          <h3>鋅灰 · 尚未設定</h3>
+          <p>沒 key · Generate 會失敗 · 提示走 Settings 貼 key 或切 OFFLINE</p>
+        </div>
+      </div>
+      <p style="margin-top: 1rem; color: var(--color-neutral-500); font-size: clamp(0.9rem, 1.25vw, 1.1rem);">每次關 Settings dialog 都 refresh —— 使用者永遠知道自己正處在哪個模式。</p>
+    </div>
+  </section>
+
+  <!-- ========== 19 · Pre-flight + audit ========== -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="eyebrow">13 · Pre-flight + audit</div>
+      <h2>Generate 前確認 · Generate 後留紀錄</h2>
+      <div class="safeguards-grid">
+        <div class="safeguard-item">
+          <div class="safeguard-name">Pre-flight confirm dialog</div>
+          <div class="safeguard-desc">顯示 model、成本區間、token 估算、rate-limit 風險標記。<strong>Cancel 是預設按鈕</strong> —— 使用者要明確同意。Mock mode 完全跳過這個 dialog。</div>
+        </div>
+        <div class="safeguard-item">
+          <div class="safeguard-name">Token estimate 三階段</div>
+          <div class="safeguard-desc"><code>&lt; 20K</code> 綠 · <code>20–28K</code> 黃 · <code>≥ 28K</code> 紅 + 建議（「remove Anchor / trim Materials / skip LinkedIn」）。</div>
+        </div>
+        <div class="safeguard-item">
+          <div class="safeguard-name">API call audit log</div>
+          <div class="safeguard-desc">每次真呼叫寫一行到 <code>%LOCALAPPDATA%\Presentkit\api-calls.log</code>（tab-separated：timestamp / model / kind / tokens）。<strong>Mock 不寫</strong>。</div>
+        </div>
+        <div class="safeguard-item">
+          <div class="safeguard-name">Stale-pref protection</div>
+          <div class="safeguard-desc">每次真 API call 前重讀磁碟 prefs。早期曾 cache，結果使用者切 OFFLINE 後 Generate 還偷打真 API —— 這條直接壓死。</div>
+        </div>
+      </div>
+      <p style="margin-top: 1rem; color: var(--color-neutral-500); font-size: clamp(0.88rem, 1.2vw, 1.05rem);">對帳的時候這份 audit log 可以對齊 Anthropic Console billing —— 「我到底花了什麼」永遠 10 秒內能自驗。</p>
+    </div>
+  </section>
+
+  <!-- ========== 20 · Divider V · Real output ========== -->
+  <section class="slide slide--divider">
+    <div class="slide-inner">
+      <div class="divider-num">Section V · Real output</div>
+      <h1>看看實際產出</h1>
+      <div class="divider-sub">not lorem ipsum · 真人 · 真履歷 · 可點擊</div>
+    </div>
+  </section>
+
+  <!-- ========== 21 · Sample showcase ========== -->
+  <section class="slide slide--showcase">
+    <div class="slide-inner">
+      <div class="eyebrow">14 · Real output</div>
+      <div class="sc-layout">
+        <div class="sc-image">
+          <img src="assets/screenshots/resume-zh-hero.png"
+               alt="Kenneth Chen 的 Presentkit 產出履歷截圖 · Minimalist Mono preset · 繁體中文版" />
+        </div>
+        <div class="sc-side">
+          <h2>Kenneth Chen<br>· v0.2 Minimalist Mono</h2>
+          <dl>
+            <dt>Preset</dt><dd>Minimalist Mono · IBM Plex Mono · 純黑 accent</dd>
+            <dt>Language</dt><dd>Both · ZH + EN 各一份</dd>
+            <dt>Mode</dt><dd>Anchor · style mirror</dd>
+            <dt>Body</dt><dd>25,066 chars · 一頁式</dd>
+            <dt>Date</dt><dd>2026-04-19</dd>
+            <dt>Model</dt><dd><code>claude-sonnet-4-6</code></dd>
+          </dl>
+          <a class="sc-cta" href="../../resume/Presentkit_v0.2.0_2026-04-19/resume.html" target="_blank" rel="noopener">
+            <span>開啟實際產出</span>
+            <span class="arrow">→</span>
+          </a>
+          <p style="margin-top: 0.8rem; font-family: var(--font-mono); font-size: 0.85em; color: var(--color-neutral-500);">(EN deck 連結 <code>resume.en.html</code>)</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 22 · Takeaway / close ========== -->
+  <section class="slide slide--takeaway">
+    <div class="slide-inner">
+      <div class="eyebrow" style="color: var(--color-accent-500);">Takeaway</div>
+      <div class="punch">包裝 AI 工具 ≠<br>把 prompt 藏起來</div>
+      <ul class="observations">
+        <li><strong>01 ·</strong> 使用者要能預測自己按下去會花什麼 —— mode badge、pre-flight、audit log 加起來才是「產品化 BYOK」</li>
+        <li><strong>02 ·</strong> 「沒做什麼」也是 KPI —— 0 installer · 0 admin · 0 CDN 比「做了多少功能」更能傳達信任</li>
+        <li><strong>03 ·</strong> Iteration 是一等公民 —— 履歷不是一次性產物，Anchor + <code>CHANGES</code> block 讓改舊版跟產新版一樣自然</li>
+      </ul>
+      <div class="links">
+        <span>github.com/suNmerandone/<strong style="color:var(--color-accent-500);">presentkit</strong> · v0.2.0</span>
+        <span>sibling skill · <a href="https://github.com/suNmerandone/claude-present">claude-present</a></span>
+        <span>Kenneth Chen · 2026-04-19</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<button class="nav-btn nav-prev" id="navPrev" aria-label="上一頁" title="上一頁（← 鍵 / 右鍵 / 滾輪向上）">‹</button>
+<button class="nav-btn nav-next" id="navNext" aria-label="下一頁" title="下一頁（→ 鍵 / 點擊 / 滾輪向下）">›</button>
+
+<div class="counter" id="counter" aria-live="polite" aria-atomic="true">1 / 22</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let idx = 0;
+  const counter = document.getElementById('counter');
+  const progressFill = document.getElementById('progressFill');
+  const navPrev = document.getElementById('navPrev');
+  const navNext = document.getElementById('navNext');
+
+  function fitSlide(slide) {
+    const inner = slide.querySelector('.slide-inner');
+    if (!inner) return;
+    inner.style.transform = '';
+    const contentH = inner.scrollHeight;
+    const containerH = slide.clientHeight;
+    const SAFETY = 16;
+    if (contentH + SAFETY > containerH) {
+      const ratio = (containerH - SAFETY) / contentH;
+      inner.style.transform = `scale(${ratio})`;
+    }
+  }
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    counter.textContent = `${idx + 1} / ${total}`;
+    progressFill.style.width = `${((idx + 1) / total) * 100}%`;
+    requestAnimationFrame(() => fitSlide(slides[idx]));
+    navPrev.disabled = (idx === 0);
+    navNext.disabled = (idx === total - 1);
+  }
+  function next() { if (idx < total - 1) { idx++; render(); } }
+  function prev() { if (idx > 0)         { idx--; render(); } }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') { idx = 0; render(); }
+    else if (e.key === 'End')  { idx = total - 1; render(); }
+    else if (e.key === 'f')    { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  });
+
+  // Ignore clicks on anchors (don't advance when user clicks the "View actual output" link)
+  document.getElementById('deck').addEventListener('click', (e) => {
+    if (e.target.closest('a, button')) return;
+    next();
+  });
+  document.addEventListener('contextmenu', (e) => { e.preventDefault(); prev(); });
+
+  let wheelLock = false;
+  document.addEventListener('wheel', (e) => {
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 10) return;
+    wheelLock = true;
+    setTimeout(() => { wheelLock = false; }, 500);
+    if (e.deltaY > 0) next(); else prev();
+  }, { passive: true });
+
+  navPrev.addEventListener('click', (e) => { e.stopPropagation(); prev(); });
+  navNext.addEventListener('click', (e) => { e.stopPropagation(); next(); });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => fitSlide(slides[idx]), 100);
+  });
+
+  render();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => render());
+  }
+</script>
+
+</body>
+</html>
