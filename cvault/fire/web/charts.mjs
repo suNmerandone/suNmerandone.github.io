@@ -7,13 +7,37 @@ const COLOR_B = '#f59e0b';
 const COLOR_B_FILL = 'rgba(245,158,11,0.12)';
 const COLOR_TARGET = '#ef4444';
 
-// 儲存 uPlot 實例，重跑時銷毀舊的避免記憶體洩漏
+// 儲存 uPlot 實例 + 對應 ResizeObserver，重跑時銷毀舊的避免記憶體洩漏
 const charts = new WeakMap();
 
 function destroyIn(container){
   const existing = charts.get(container);
-  if (existing){ try { existing.destroy(); } catch {} charts.delete(container); }
+  if (existing){
+    try { existing.observer?.disconnect(); } catch {}
+    try { existing.u.destroy(); } catch {}
+    charts.delete(container);
+  }
   container.innerHTML = '';
+}
+
+// 註冊一個 uPlot 實例 + ResizeObserver，讓 canvas 寬度跟隨 container
+// （uPlot 是 canvas，不會自動 responsive，必須手動 setSize）
+function register(container, u, height){
+  const observer = new ResizeObserver(entries => {
+    for (const e of entries){
+      const w = Math.max(1, Math.floor(e.contentRect.width));
+      // uPlot 在 width 變動時才需重設（避免無謂重繪）
+      if (u.width !== w) u.setSize({ width: w, height });
+    }
+  });
+  observer.observe(container);
+  charts.set(container, { u, observer });
+}
+
+// 取得目前 container 的可用寬度（無 min 下限，手機上才能自然縮）
+function containerWidth(container){
+  const w = container.getBoundingClientRect().width;
+  return Math.max(1, Math.floor(w || 500));
 }
 
 // 共用：hover 時的數值格式化（把長數字縮成 萬/億），null/undefined 時顯示 —
@@ -24,8 +48,7 @@ const yearVal = (u, v) => (v == null ? '—' : v.toFixed(0) + 'y');
 // data: { years[], A?: {p5,p50,p95,scale}, B?: {p5,p50,p95,scale}, target? }
 export function drawTrajectory(container, data){
   destroyIn(container);
-  const rect = container.getBoundingClientRect();
-  const width = Math.max(rect.width || 500, 300);
+  const width = containerWidth(container);
   const height = 340;  // 留出 legend 空間避免溢出
 
   const { years } = data;
@@ -92,7 +115,7 @@ export function drawTrajectory(container, data){
   }
 
   const u = new window.uPlot(opts, seriesData, container);
-  charts.set(container, u);
+  register(container, u, height);
 }
 
 // ========== 通用多線圖（確定性情境用）==========
@@ -105,8 +128,7 @@ export function drawTrajectory(container, data){
 // }
 export function drawLineChart(container, data){
   destroyIn(container);
-  const rect = container.getBoundingClientRect();
-  const width = Math.max(rect.width || 500, 300);
+  const width = containerWidth(container);
   const height = 340;
 
   const seriesData = [data.years];
@@ -155,15 +177,14 @@ export function drawLineChart(container, data){
   };
 
   const u = new window.uPlot(opts, seriesData, container);
-  charts.set(container, u);
+  register(container, u, height);
 }
 
 // ========== 機率曲線（CDF / probAt）==========
 // data: { xLabel, A?: {x[], y[]}, B?: {x[], y[]}, xFmt?: 'twd' | 'year' }
 export function drawProbCurve(container, data){
   destroyIn(container);
-  const rect = container.getBoundingClientRect();
-  const width = Math.max(rect.width || 500, 300);
+  const width = containerWidth(container);
   const height = 340;  // 與軌跡圖對齊高度
 
   // 合併 x (假設 A/B 的 x 相同，否則取 A 為主)
@@ -214,7 +235,7 @@ export function drawProbCurve(container, data){
   };
 
   const u = new window.uPlot(opts, seriesData, container);
-  charts.set(container, u);
+  register(container, u, height);
 }
 
 // 輔助格式化
@@ -228,7 +249,3 @@ export function fmtTwdShort(x){
   return Math.round(n).toLocaleString();
 }
 
-// 重繪所有圖表（resize 用）
-export function resizeAll(){
-  // Not used in MVP, placeholder
-}

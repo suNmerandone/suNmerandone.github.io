@@ -65,12 +65,14 @@ header h1 {
 /* ===== Tabs — iOS segmented control style ===== */
 .tabs {
   display: inline-flex;
+  flex-wrap: wrap;  /* 手機窄寬度下換行，避免橫向溢出 */
   background: rgba(120, 120, 128, 0.14);
   padding: 4px;
   border-radius: 12px;
   gap: 2px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  max-width: 100%;
 }
 .tab {
   background: transparent;
@@ -129,6 +131,10 @@ main {
   top: 90px;
   /* 讓內部 elements 堆疊在 summary-text 上方 */
   z-index: 3;
+}
+/* 單欄 layout（手機）下關閉 sticky — 否則表單會一直卡在 viewport 頂，遮住結果 */
+@media (max-width: 900px){
+  .form { position: static; top: auto; }
 }
 .form h2 {
   margin: 0 0 6px;
@@ -320,7 +326,7 @@ main {
   position: relative;
   z-index: 2;
 }
-@media (max-width: 1100px){
+@media (max-width: 900px){
   .charts { grid-template-columns: 1fr; }
 }
 .chart-wrap {
@@ -493,6 +499,41 @@ footer a:hover { text-decoration: underline; }
 
   .progress-wrap { background: rgba(120, 120, 128, 0.28); }
   .progress-bar { background: linear-gradient(90deg, #0a84ff, #5e5ce6); }
+}
+
+/* ================================================================
+   Mobile ≤600px — 緊湊間距、加大可點擊區域、避免 iOS input 自動 zoom
+   ================================================================ */
+@media (max-width: 600px){
+  header { padding: 14px 16px 0; }
+  header h1 { font-size: 17px; margin-bottom: 10px; }
+  .tab { padding: 7px 12px; font-size: 12px; }
+
+  main { padding: 16px; min-height: calc(100vh - 100px); }
+  .layout { gap: 16px; }
+
+  .form { padding: 18px; border-radius: 18px; }
+  .form h2 { font-size: 16px; }
+  .form label { margin: 12px 0; }
+  /* 16px 是避免 iOS Safari focus input 時自動 zoom 的關鍵門檻 */
+  .form input, .form select { font-size: 16px; }
+
+  .actions button { padding: 12px 14px; font-size: 15px; }
+
+  .kpis { grid-template-columns: 1fr; gap: 10px; }
+  .kpi { padding: 12px 14px; border-radius: 14px; }
+  .kpi .value { font-size: 19px; }
+
+  .chart-wrap { padding: 14px; border-radius: 16px; min-height: 380px; }
+  .chart { min-height: 320px; }
+
+  .summary-text {
+    font-size: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+
+  footer { padding: 20px 16px; }
 }
 
 /* ===== 可用性輔助 ===== */
