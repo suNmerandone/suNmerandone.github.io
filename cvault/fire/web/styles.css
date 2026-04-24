@@ -1,0 +1,509 @@
+/* ================================================================
+   Coast FIRE MC — iOS 26+ "Liquid Glass" style
+   Glassmorphism with backdrop-filter blur, soft gradient canvas,
+   system fonts, generous radius, soft shadows.
+   ================================================================ */
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; min-height: 100%; }
+html, body { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+               "Segoe UI Variable", "Segoe UI", "PingFang TC", "Microsoft JhengHei",
+               "Noto Sans TC", sans-serif;
+  color: #1c1c1e;
+  line-height: 1.5;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* 彩色漸層 canvas — 讓玻璃材質有東西可以 blur */
+  background:
+    radial-gradient(at 12% 18%, rgba(135, 206, 250, 0.55) 0px, transparent 45%),
+    radial-gradient(at 85% 15%, rgba(255, 192, 203, 0.45) 0px, transparent 50%),
+    radial-gradient(at 75% 85%, rgba(186, 200, 255, 0.55) 0px, transparent 55%),
+    radial-gradient(at 20% 80%, rgba(255, 220, 180, 0.45) 0px, transparent 50%),
+    linear-gradient(135deg, #eef2ff 0%, #fce8f3 50%, #e8f5ff 100%);
+  background-attachment: fixed;
+}
+
+/* 為極長頁面延伸背景 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: inherit;
+}
+
+/* ===== Header — Top frosted glass bar ===== */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 18px 28px 0;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 30px rgba(31, 38, 135, 0.06);
+}
+header h1 {
+  margin: 0 0 14px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #1c1c1e;
+  background: linear-gradient(135deg, #1c1c1e 0%, #4a4a50 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== Tabs — iOS segmented control style ===== */
+.tabs {
+  display: inline-flex;
+  background: rgba(120, 120, 128, 0.14);
+  padding: 4px;
+  border-radius: 12px;
+  gap: 2px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.tab {
+  background: transparent;
+  color: rgba(60, 60, 67, 0.7);
+  border: none;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 9px;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  letter-spacing: -0.1px;
+}
+.tab:hover { color: rgba(0, 0, 0, 0.85); }
+.tab.active {
+  background: rgba(255, 255, 255, 0.92);
+  color: #000;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 0 0 0.5px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== Main layout ===== */
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px;
+  min-height: calc(100vh - 120px);
+}
+.scenario { display: none; }
+.scenario.active { display: block; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 24px;
+}
+@media (max-width: 900px){
+  .layout { grid-template-columns: 1fr; }
+}
+
+/* ===== Form (left pane) — Glass card ===== */
+.form {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  padding: 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 8px 32px rgba(31, 38, 135, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  height: fit-content;
+  position: sticky;
+  top: 90px;
+  /* 讓內部 elements 堆疊在 summary-text 上方 */
+  z-index: 3;
+}
+.form h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.form .hint {
+  color: rgba(60, 60, 67, 0.65);
+  font-size: 12px;
+  margin: 0 0 18px;
+  line-height: 1.45;
+}
+.form label {
+  display: block;
+  margin: 14px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(60, 60, 67, 0.85);
+  letter-spacing: -0.1px;
+}
+.form input, .form select {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 6px;
+  border: 1px solid rgba(120, 120, 128, 0.24);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  color: #1c1c1e;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.15s ease;
+}
+.form input:hover, .form select:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+.form input:focus, .form select:focus {
+  outline: none;
+  border-color: rgba(0, 122, 255, 0.7);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+/* ===== Actions ===== */
+.actions {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.actions button {
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: -0.2px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #1c1c1e;
+  transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.actions button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.85);
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.actions button:active:not(:disabled) {
+  transform: translateY(0);
+}
+.actions button.run {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.95) 0%, rgba(88, 86, 214, 0.95) 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 4px 14px rgba(0, 122, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.actions button.run:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 1) 0%, rgba(88, 86, 214, 1) 100%);
+  box-shadow:
+    0 6px 18px rgba(0, 122, 255, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ===== Results (right pane) ===== */
+.results { min-height: 400px; position: relative; z-index: 1; }
+
+.status {
+  min-height: 20px;
+  font-size: 12px;
+  color: rgba(60, 60, 67, 0.7);
+  margin-bottom: 10px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+}
+.status.ok { color: #34c759; }
+.status.error { color: #ff3b30; }
+
+.progress-wrap {
+  height: 3px;
+  background: rgba(120, 120, 128, 0.16);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  display: none;
+}
+.progress-wrap.active { display: block; }
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #007aff, #5856d6);
+  width: 0%;
+  transition: width 0.18s ease-out;
+  box-shadow: 0 0 8px rgba(0, 122, 255, 0.4);
+}
+
+/* ===== KPI cards ===== */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 4px 20px rgba(31, 38, 135, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+}
+.kpi .label {
+  font-size: 11px;
+  color: rgba(60, 60, 67, 0.7);
+  letter-spacing: 0.2px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.kpi .value {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 6px;
+  letter-spacing: -0.5px;
+  color: #1c1c1e;
+}
+.kpi.port-a {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.08) 0%, rgba(255, 255, 255, 0.55) 60%);
+  border-left: 3px solid rgba(0, 122, 255, 0.7);
+}
+.kpi.port-b {
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.1) 0%, rgba(255, 255, 255, 0.55) 60%);
+  border-left: 3px solid rgba(255, 149, 0, 0.75);
+}
+
+/* ===== Charts — 把層級推高，避免被 .summary-text 遮住 hover tooltip ===== */
+.charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 36px;  /* 與摘要區拉開距離，避免 legend 溢出時視覺交疊 */
+  position: relative;
+  z-index: 2;
+}
+@media (max-width: 1100px){
+  .charts { grid-template-columns: 1fr; }
+}
+.chart-wrap {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  padding: 16px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 4px 20px rgba(31, 38, 135, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+  /* 容納 uPlot 本身渲染的 canvas + legend（7 系列 × 最多 3 行） */
+  min-height: 400px;
+}
+.chart-wrap h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(60, 60, 67, 0.85);
+  letter-spacing: -0.2px;
+}
+.chart {
+  width: 100%;
+  min-height: 340px;  /* uPlot 總高（canvas + legend）；canvas ~250、legend ~90 */
+}
+
+/* uPlot 在玻璃背景上的字體對比調整 + 讓 legend 分多行時整齊 */
+.u-legend {
+  color: rgba(60, 60, 67, 0.9);
+  font-size: 11px;
+  padding: 8px 4px 0;
+  line-height: 1.5;
+}
+.u-legend .u-series {
+  padding: 2px 6px;  /* 每個系列的左右 padding */
+}
+.u-axis { color: rgba(60, 60, 67, 0.65); }
+.u-title { font-size: 12px; }
+
+/* ===== Summary text — Dark glass, lower z-index ===== */
+.summary-text {
+  background: rgba(28, 28, 30, 0.78);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: rgba(242, 242, 247, 0.95);
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: "SF Mono", ui-monospace, Consolas, "Menlo", monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  overflow-x: auto;
+  margin-top: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  /* 明確設 z-index 以確保 hover overlay 不會被蓋 */
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== Footer ===== */
+footer {
+  text-align: center;
+  padding: 28px 20px;
+  font-size: 12px;
+  color: rgba(60, 60, 67, 0.5);
+  font-weight: 500;
+}
+footer a {
+  color: rgba(0, 122, 255, 0.8);
+  text-decoration: none;
+}
+footer a:hover { text-decoration: underline; }
+
+/* ================================================================
+   Dark mode — iOS dark material
+   ================================================================ */
+@media (prefers-color-scheme: dark){
+  body {
+    color: #f5f5f7;
+    background:
+      radial-gradient(at 12% 18%, rgba(88, 86, 214, 0.35) 0px, transparent 45%),
+      radial-gradient(at 85% 15%, rgba(255, 45, 85, 0.22) 0px, transparent 50%),
+      radial-gradient(at 75% 85%, rgba(52, 199, 89, 0.2) 0px, transparent 55%),
+      radial-gradient(at 20% 80%, rgba(255, 149, 0, 0.22) 0px, transparent 50%),
+      linear-gradient(135deg, #0a0a1a 0%, #1a0d1a 50%, #0d1a1f 100%);
+  }
+  header {
+    background: rgba(28, 28, 30, 0.65);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+  header h1 {
+    background: linear-gradient(135deg, #f5f5f7 0%, #a1a1a6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .tabs { background: rgba(120, 120, 128, 0.24); }
+  .tab { color: rgba(235, 235, 245, 0.6); }
+  .tab:hover { color: rgba(255, 255, 255, 0.95); }
+  .tab.active {
+    background: rgba(99, 99, 102, 0.85);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .form, .kpi, .chart-wrap {
+    background: rgba(44, 44, 46, 0.55);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .form h2 { color: #f5f5f7; }
+  .form .hint, .form label { color: rgba(235, 235, 245, 0.6); }
+  .form input, .form select {
+    background: rgba(44, 44, 46, 0.6);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f5f5f7;
+  }
+  .form input:focus, .form select:focus {
+    background: rgba(58, 58, 60, 0.9);
+    border-color: rgba(10, 132, 255, 0.7);
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
+  }
+
+  .actions button {
+    background: rgba(58, 58, 60, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f5f5f7;
+  }
+  .actions button:hover:not(:disabled) {
+    background: rgba(72, 72, 74, 0.85);
+  }
+  .actions button.run {
+    background: linear-gradient(135deg, rgba(10, 132, 255, 0.9) 0%, rgba(94, 92, 230, 0.9) 100%);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .kpi .label { color: rgba(235, 235, 245, 0.6); }
+  .kpi .value { color: #f5f5f7; }
+  .kpi.port-a {
+    background: linear-gradient(135deg, rgba(10, 132, 255, 0.15) 0%, rgba(44, 44, 46, 0.55) 60%);
+    border-left-color: rgba(10, 132, 255, 0.85);
+  }
+  .kpi.port-b {
+    background: linear-gradient(135deg, rgba(255, 159, 10, 0.15) 0%, rgba(44, 44, 46, 0.55) 60%);
+    border-left-color: rgba(255, 159, 10, 0.85);
+  }
+  .chart-wrap h3 { color: rgba(235, 235, 245, 0.85); }
+  .u-legend { color: rgba(235, 235, 245, 0.85); }
+  .u-axis { color: rgba(235, 235, 245, 0.5); }
+
+  .summary-text {
+    background: rgba(28, 28, 30, 0.88);
+    color: rgba(242, 242, 247, 0.95);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .status { color: rgba(235, 235, 245, 0.6); }
+  .status.ok { color: #30d158; }
+  .status.error { color: #ff453a; }
+
+  footer { color: rgba(235, 235, 245, 0.5); }
+  footer a { color: rgba(10, 132, 255, 0.9); }
+
+  .progress-wrap { background: rgba(120, 120, 128, 0.28); }
+  .progress-bar { background: linear-gradient(90deg, #0a84ff, #5e5ce6); }
+}
+
+/* ===== 可用性輔助 ===== */
+@media (prefers-reduced-motion: reduce){
+  * { transition: none !important; animation: none !important; }
+}
+
+/* Fallback：舊瀏覽器不支援 backdrop-filter 時 */
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))){
+  .form, .kpi, .chart-wrap, header, .tabs {
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+  .summary-text { background: rgba(28, 28, 30, 0.98) !important; }
+}

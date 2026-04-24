@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="no-referrer">
+  <title>Coast FIRE MC — 蒙地卡羅模擬</title>
+  <link rel="stylesheet" href="./vendor/uPlot.min.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header>
+    <h1>Coast FIRE Monte Carlo</h1>
+    <nav class="tabs">
+      <button class="tab active" data-scenario="basic">速算 · Coast FIRE</button>
+      <button class="tab"        data-scenario="coast">情境 1 · 求本金</button>
+      <button class="tab"        data-scenario="fixed">情境 2 · 固定本金</button>
+      <button class="tab"        data-scenario="dca">情境 3 · DCA</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ========== 基本 Coast FIRE 速算（確定性公式，無 MC） ========== -->
+    <section class="scenario active" id="basic">
+      <div class="layout">
+        <aside class="form">
+          <h2>設定</h2>
+          <p class="hint">確定性公式計算：固定年化報酬率、無波動假設。可作為 MC 情境的理論對照基準。</p>
+
+          <label>目標金額 (TWD)
+            <input type="number" data-field="target" value="10000000" step="1000000">
+          </label>
+          <label>距離目標年數
+            <input type="number" data-field="years" value="25" min="1" max="80">
+          </label>
+          <label>預期年化報酬率 (%)
+            <input type="number" data-field="rate" value="8" step="0.5" min="-5" max="30">
+          </label>
+          <label>目前已有本金 (TWD)
+            <input type="number" data-field="initial" value="0" step="10000">
+          </label>
+          <label>年度加碼金額 (TWD)
+            <input type="number" data-field="annual" value="0" step="10000">
+          </label>
+          <label>通膨率 (%，選填；&gt; 0 會轉換為實質報酬)
+            <input type="number" data-field="inflation" value="0" step="0.1" min="0" max="10">
+          </label>
+
+          <div class="actions">
+            <button class="run" data-scenario="basic">計算</button>
+            <button class="download" data-scenario="basic" disabled>下載結果</button>
+          </div>
+        </aside>
+
+        <div class="results">
+          <div class="status"></div>
+          <div class="progress-wrap"><div class="progress-bar"></div></div>
+          <div class="kpis"></div>
+          <div class="charts">
+            <div class="chart-wrap"><h3>帳戶淨值成長曲線</h3><div class="chart" data-chart="trajectory"></div></div>
+            <div class="chart-wrap"><h3>不同報酬率下的今日所需本金</h3><div class="chart" data-chart="prob"></div></div>
+          </div>
+          <pre class="summary-text"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 情境 1 ========== -->
+    <section class="scenario" id="coast">
+      <div class="layout">
+        <aside class="form">
+          <h2>設定</h2>
+          <p class="hint">給定目標與年數，求出使「達標機率 ≥ 信心水準」的最少初始本金。</p>
+
+          <label>目標金額 (TWD)
+            <input type="number" data-field="target" value="10000000" step="1000000">
+          </label>
+          <label>年數
+            <input type="number" data-field="years" value="25" min="5" max="50">
+          </label>
+          <label>信心水準 (%)
+            <input type="number" data-field="confidence" value="70" min="50" max="95" step="5">
+          </label>
+          <label>迭代次數
+            <select data-field="iters">
+              <option value="1000">1,000（快速預覽）</option>
+              <option value="10000" selected>10,000（標準）</option>
+              <option value="50000">50,000（精確，~10 秒）</option>
+            </select>
+          </label>
+          <label>組合
+            <select data-field="portfolio">
+              <option value="both" selected>A + B 對比</option>
+              <option value="A">只跑 Portfolio A</option>
+              <option value="B">只跑 Portfolio B</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button class="run" data-scenario="coast">執行模擬</button>
+            <button class="download" data-scenario="coast" disabled>下載結果</button>
+            <button class="copy-cli" data-scenario="coast" disabled>複製 CLI 命令</button>
+          </div>
+        </aside>
+
+        <div class="results">
+          <div class="status"></div>
+          <div class="progress-wrap"><div class="progress-bar"></div></div>
+          <div class="kpis"></div>
+          <div class="charts">
+            <div class="chart-wrap"><h3>淨值軌跡 (log 刻度，per 1 TWD)</h3><div class="chart" data-chart="trajectory"></div></div>
+            <div class="chart-wrap"><h3>不同初始本金的達標機率</h3><div class="chart" data-chart="prob"></div></div>
+          </div>
+          <pre class="summary-text"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 情境 2 ========== -->
+    <section class="scenario" id="fixed">
+      <div class="layout">
+        <aside class="form">
+          <h2>設定</h2>
+          <p class="hint">給定固定初始本金，模擬第 25 年的淨值分佈與達標所需年數。</p>
+
+          <label>初始本金 (TWD)
+            <input type="number" data-field="initial" value="100000" step="10000">
+          </label>
+          <label>目標金額 (TWD)
+            <input type="number" data-field="target" value="10000000" step="1000000">
+          </label>
+          <label>觀察年
+            <input type="number" data-field="refYear" value="25" min="5" max="50">
+          </label>
+          <label>最長觀察年數
+            <input type="number" data-field="maxYears" value="70" min="25" max="100">
+          </label>
+          <label>迭代次數
+            <select data-field="iters">
+              <option value="1000">1,000</option>
+              <option value="10000" selected>10,000</option>
+              <option value="50000">50,000</option>
+            </select>
+          </label>
+          <label>組合
+            <select data-field="portfolio">
+              <option value="both" selected>A + B 對比</option>
+              <option value="A">只跑 A</option>
+              <option value="B">只跑 B</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button class="run" data-scenario="fixed">執行模擬</button>
+            <button class="download" data-scenario="fixed" disabled>下載結果</button>
+            <button class="copy-cli" data-scenario="fixed" disabled>複製 CLI 命令</button>
+          </div>
+        </aside>
+
+        <div class="results">
+          <div class="status"></div>
+          <div class="progress-wrap"><div class="progress-bar"></div></div>
+          <div class="kpis"></div>
+          <div class="charts">
+            <div class="chart-wrap"><h3>淨值軌跡 (log 刻度)</h3><div class="chart" data-chart="trajectory"></div></div>
+            <div class="chart-wrap"><h3>達標年數 CDF</h3><div class="chart" data-chart="prob"></div></div>
+          </div>
+          <pre class="summary-text"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 情境 3 ========== -->
+    <section class="scenario" id="dca">
+      <div class="layout">
+        <aside class="form">
+          <h2>設定</h2>
+          <p class="hint">初始本金 + 每年加碼 N 年後停止，尋找 Coast FIRE 切換點。</p>
+
+          <label>初始本金 (TWD)
+            <input type="number" data-field="initial" value="100000" step="10000">
+          </label>
+          <label>年加碼金額 (TWD)
+            <input type="number" data-field="annual" value="100000" step="10000">
+          </label>
+          <label>連續投入年數
+            <input type="number" data-field="contribYears" value="9" min="0" max="30">
+          </label>
+          <label>目標金額 (TWD)
+            <input type="number" data-field="target" value="10000000" step="1000000">
+          </label>
+          <label>最長觀察年數
+            <input type="number" data-field="maxYears" value="70" min="25" max="100">
+          </label>
+          <label>迭代次數
+            <select data-field="iters">
+              <option value="1000">1,000</option>
+              <option value="10000" selected>10,000</option>
+              <option value="50000">50,000</option>
+            </select>
+          </label>
+          <label>組合
+            <select data-field="portfolio">
+              <option value="both" selected>A + B 對比</option>
+              <option value="A">只跑 A</option>
+              <option value="B">只跑 B</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button class="run" data-scenario="dca">執行模擬</button>
+            <button class="download" data-scenario="dca" disabled>下載結果</button>
+            <button class="copy-cli" data-scenario="dca" disabled>複製 CLI 命令</button>
+          </div>
+        </aside>
+
+        <div class="results">
+          <div class="status"></div>
+          <div class="progress-wrap"><div class="progress-bar"></div></div>
+          <div class="kpis"></div>
+          <div class="charts">
+            <div class="chart-wrap"><h3>淨值軌跡 (log 刻度)</h3><div class="chart" data-chart="trajectory"></div></div>
+            <div class="chart-wrap"><h3>達標年數 CDF</h3><div class="chart" data-chart="prob"></div></div>
+          </div>
+          <pre class="summary-text"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><span>Coast FIRE Monte Carlo</span></footer>
+
+  <!-- uPlot 必須在 app.mjs 之前載入（它是全域 UMD） -->
+  <script src="./vendor/uPlot.iife.min.js"></script>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
