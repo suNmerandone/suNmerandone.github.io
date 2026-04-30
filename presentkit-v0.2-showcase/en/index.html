@@ -235,6 +235,12 @@
     .nav-prev { left: 0.75rem; }
     .nav-next { right: 0.75rem; }
 
+    /* Touch device — make nav buttons visible (no hover available) */
+    @media (hover: none) and (pointer: coarse) {
+      .nav-btn { opacity: 0.5; }
+      .nav-btn:active { opacity: 0.85; background: rgba(0,0,0,0.55); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
     }
@@ -453,7 +459,7 @@
       <div class="eyebrow">05 · Step 1</div>
       <div class="ss-layout">
         <div class="ss-image">
-          <img src="../assets/screenshots/01-design.png"
+          <img src="assets/screenshots/01-design.png"
                onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[01-design.png]</div>';"
                alt="Presentkit Design step — three preset cards" />
         </div>
@@ -477,7 +483,7 @@
       <div class="eyebrow">06 · Step 2</div>
       <div class="ss-layout">
         <div class="ss-image">
-          <img src="../assets/screenshots/02-linkedin.png"
+          <img src="assets/screenshots/02-linkedin.png"
                onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[02-linkedin.png]</div>';"
                alt="Presentkit LinkedIn step — PDF drop zone" />
         </div>
@@ -520,7 +526,7 @@
       <div class="eyebrow">08 · Step 4</div>
       <div class="ss-layout">
         <div class="ss-image">
-          <img src="../assets/screenshots/04-materials.png"
+          <img src="assets/screenshots/04-materials.png"
                onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[04-materials.png]</div>';"
                alt="Presentkit Materials step — supplementary file uploads" />
         </div>
@@ -544,7 +550,7 @@
       <div class="eyebrow">09 · Step 5</div>
       <div class="ss-layout">
         <div class="ss-image">
-          <img src="../assets/screenshots/05-anchor.png"
+          <img src="assets/screenshots/05-anchor.png"
                onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[05-anchor.png]</div>';"
                alt="Presentkit Anchor step — mirror vs iterate modes" />
         </div>
@@ -591,7 +597,7 @@
       <div class="eyebrow">11 · Step 8</div>
       <div class="ss-layout">
         <div class="ss-image">
-          <img src="../assets/screenshots/08-done.png"
+          <img src="assets/screenshots/08-done.png"
                onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:3rem;text-align:center;color:#A1A1AA;font-family:monospace;&quot;>[08-done.png]</div>';"
                alt="Presentkit Done step — generation complete screen" />
         </div>
@@ -687,7 +693,7 @@
       <div class="eyebrow">14 · Real output</div>
       <div class="sc-layout">
         <div class="sc-image">
-          <img src="../assets/screenshots/resume-en-hero.png"
+          <img src="assets/screenshots/resume-en-hero.png"
                alt="Kenneth Chen's Presentkit resume output · Minimalist Mono preset · English version" />
         </div>
         <div class="sc-side">
@@ -781,6 +787,25 @@
     next();
   });
   document.addEventListener('contextmenu', (e) => { e.preventDefault(); prev(); });
+
+  // ---------- Touch: swipe left/right = next/prev ----------
+  let touchStartX = null;
+  let touchStartY = null;
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { touchStartX = null; return; }
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (touchStartX === null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    touchStartX = null;
+    // 需 horizontal > vertical（區分 swipe vs scroll）且位移 > 40px
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) next(); else prev();
+  }, { passive: true });
 
   let wheelLock = false;
   document.addEventListener('wheel', (e) => {

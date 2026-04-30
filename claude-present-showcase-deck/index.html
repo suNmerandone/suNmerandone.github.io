@@ -167,6 +167,12 @@
     .nav-prev { left: 0.75rem; }
     .nav-next { right: 0.75rem; }
 
+    /* Touch device — make nav buttons visible (no hover available) */
+    @media (hover: none) and (pointer: coarse) {
+      .nav-btn { opacity: 0.5; }
+      .nav-btn:active { opacity: 0.85; background: rgba(0,0,0,0.55); }
+    }
+
     /* 尊重使用者「減少動態效果」偏好（前庭障礙 / ADHD 相關） */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
@@ -579,8 +585,30 @@ public-showcase/resume/index.html  <span class="marker">← 自動重生，永�
   });
 
   // ---------- Mouse: left-click advances, right-click goes back ----------
-  document.getElementById('deck').addEventListener('click', next);
+  document.getElementById('deck').addEventListener('click', (e) => {
+    if (e.target.closest('a, button')) return;
+    next();
+  });
   document.addEventListener('contextmenu', (e) => { e.preventDefault(); prev(); });
+
+  // ---------- Touch: swipe left/right = next/prev ----------
+  let touchStartX = null;
+  let touchStartY = null;
+  document.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { touchStartX = null; return; }
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (touchStartX === null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+    touchStartX = null;
+    // 需 horizontal > vertical（區分 swipe vs scroll）且位移 > 40px
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) next(); else prev();
+  }, { passive: true });
 
   // ---------- Wheel: one firm scroll = one page (throttled) ----------
   let wheelLock = false;
